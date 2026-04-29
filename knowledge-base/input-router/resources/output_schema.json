@@ -8,6 +8,8 @@
   "required": [
     "Delivery_Mode",
     "Output_Artifacts",
+    "Active_Sections",
+    "Clarification_Confirmed",
     "Domain_Name",
     "Feature_Name",
     "Input_Type",
@@ -52,6 +54,33 @@
         ]
       }
     },
+    "Active_Sections": {
+    "type": "array",
+    "description": "PRD sections the user has confirmed they want included. Sections not listed here are skipped during drafting.",
+    "minItems": 1,
+    "uniqueItems": true,
+    "items": {
+      "type": "string",
+      "enum": [
+        "Problem Statement",
+        "JTBD",
+        "Goals & Success Metrics",
+        "Assumptions & Open Questions",
+        "Feature Epics & User Stories",
+        "Business Rules",
+        "Process Diagrams",
+        "Use Case Specifications",
+        "Functional Requirements",
+        "Non-Functional Requirements",
+        "UI/UX Specifications",
+        "API / Technical Specs"
+      ]
+    }
+    },
+    "Clarification_Confirmed": {
+      "type": "boolean",
+      "description": "Set to true only after the user has reviewed, corrected, and explicitly approved the structured JSON in the Step 1.5 clarification gate. Never set to true by the model without user confirmation."
+    },
     "Domain_Name": {
       "type": "string",
       "description": "Lowercase kebab-case domain slug.",
@@ -91,6 +120,7 @@
     "JTBD_Candidates": {
       "type": "array",
       "description": "JTBD signals extracted from the input. Product Framing will refine and validate these before drafting.",
+      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -98,10 +128,7 @@
           "User_Type",
           "Situation",
           "Motivation",
-          "Expected_Outcome",
-          "Functional_Job",
-          "Emotional_Job",
-          "Social_Job"
+          "Expected_Outcome"
         ],
         "properties": {
           "User_Type": {
@@ -114,15 +141,6 @@
             "$ref": "#/$defs/non_empty_or_needs_clarification"
           },
           "Expected_Outcome": {
-            "$ref": "#/$defs/non_empty_or_needs_clarification"
-          },
-          "Functional_Job": {
-            "$ref": "#/$defs/non_empty_or_needs_clarification"
-          },
-          "Emotional_Job": {
-            "$ref": "#/$defs/non_empty_or_needs_clarification"
-          },
-          "Social_Job": {
             "$ref": "#/$defs/non_empty_or_needs_clarification"
           }
         }

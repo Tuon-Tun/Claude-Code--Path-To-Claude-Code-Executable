@@ -40,19 +40,19 @@
 ### 2.2 Job to Be Done (JTBD)
 
 <!--
-  One block per distinct user type, role, or usage context - no upper limit.
-  Think through every actor before deciding how many blocks to write.
+  One block per distinct actor type, role, or usage context — no upper limit.
+  Write one JTBD block per actor when their situation, motivation, or expected outcome differs.
+  Do not collapse different actors into a single statement.
+  Skip this section entirely only if "JTBD" was excluded from Active_Sections.
 -->
 
 **JTBD - [User Type / Scenario]**
 
-> When [situation], I want to [motivation], so I can [expected outcome].
+When [situation], I want to [motivation], so I can [expected outcome].
 
-| Dimension      | Description |
-|----------------|-------------|
-| Functional Job |             |
-| Emotional Job  |             |
-| Social Job     |             |
+- **Functional job:** [The task the user is trying to accomplish]
+- **Emotional job:** [How the user wants to feel, or avoid feeling]
+- **Social job:** [How the user wants to be perceived, and by whom]
 
 ---
 

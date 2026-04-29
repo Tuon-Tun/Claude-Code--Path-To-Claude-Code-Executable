@@ -22,7 +22,25 @@ When a user provides a raw idea or note, you MUST execute the following steps in
 * **Output artifact confirmation:** If the user chooses `IDE_FULL_PIPELINE`, confirm whether final outputs should be `Markdown File` only or `Markdown File` + `DOCX File`. Default to both if the user asks for the full pipeline.
 * **Diagram action:** Check whether the user has already specified a diagram type (BPMN, Activity Diagram, Sequence Diagram, or none). If not, ask in the same initial checkpoint: *"Does this feature require any diagrams? If so, which types do you need?"*
 * **Important BPMN Note:** BPMN uses BPMN 2.0 XML. It is very token-heavy and not yet efficient for AI because coordinates for shapes and connectors must be estimated manually. The result will be basic, so confirm carefully before choosing BPMN.
-* **Wait:** Wait for the user to finalize delivery mode, output artifacts, and diagram requirements before moving to Step 1.
+* **Scope agenda confirmation:** After the user confirms delivery mode and diagrams, present the full list of PRD sections and ask the user to confirm which ones apply. Explain briefly what each section contains. Default to all sections active. The user may exclude sections that are not relevant to their feature.
+
+  Present the agenda as a numbered checklist:
+  1. Problem Statement — context, current gap, business motivation
+  2. JTBD — jobs-to-be-done by user type and scenario
+  3. Goals & Success Metrics — business goals and measurable targets
+  4. Assumptions & Open Questions — open unknowns and dependencies
+  5. Feature Epics & User Stories — epic hierarchy, INVEST-standard stories, acceptance criteria
+  6. Business Rules — eligibility, limits, validation, state transitions
+  7. Process Diagrams — BPMN / Activity / Sequence diagrams (only if requested)
+  8. Use Case Specifications — main flow, alternative flows, exception flows per story
+  9. Functional Requirements — priority-ranked FR table
+  10. Non-Functional Requirements — performance, security, availability thresholds
+  11. UI/UX Specifications — wireframe descriptions and validation rules
+  12. API / Technical Specs — endpoint, method, payload, response, error handling
+
+  Ask: *"Which of these sections apply to your feature? Remove any that are not relevant."*
+
+* **Wait:** Do not proceed to Step 1 until the user has confirmed delivery mode, artifacts, diagram types, and the list of active sections.
 
 ### Step 1: Data Pre-processing (Call Input Router)
 
@@ -35,6 +53,32 @@ When a user provides a raw idea or note, you MUST execute the following steps in
 * **Output:** Display the generated JSON to the user.
 * **Wait (HITL):** Ask: *"Does this JSON correctly reflect your requirements? Please approve it or request edits."*
 * **Constraint:** DO NOT move to Step 2 until the user explicitly approves the JSON.
+
+### Step 1.5: Clarification & Mandatory Confirmation Gate (CRITICAL PAUSE)
+
+* **Purpose:** This step exists to resolve all `[NEEDS_CLARIFICATION]` gaps before any framing or drafting work begins. It saves significant tokens by preventing the model from drafting incomplete sections that must be redone later.
+* **Action:** Review the approved JSON from Step 1. For every field containing `[NEEDS_CLARIFICATION]`, generate a concise, numbered list of clarification questions and present them to the user in one message. Group related questions together. Do not ask the same information twice.
+* **Example format:**
+  Before we begin framing, I need to clarify a few points:
+    [Target_Users] Who is the primary actor? (e.g., logged-in wallet user, guest, admin)
+    [Success_Metrics] What is the baseline transaction volume today? What is the target?
+    [Business_Logic_and_Rules] What happens if a user tries to claim after all envelopes are taken?
+  Please answer the ones you can — any still unknown can stay as TBD.
+* **Update the JSON:** After the user responds, update all clarifiable fields in the JSON. Fields the user cannot answer remain as `[NEEDS_CLARIFICATION]` and surface as `TBD` in the PRD.
+* **Set `Clarification_Confirmed: true`** in the JSON only after the user explicitly approves the updated version. Do not proceed to Step 2 until this field is `true`.
+* **User story overview diagram:** After the user approves the clarified JSON, generate a Mermaid flowchart showing the epic and story hierarchy from `Epic_Candidates` and `User_Story_Candidates`. This gives the user a visual summary of the feature scope before full drafting begins.
+  Use this format:
+  flowchart TD
+  classDef epic fill: #CECBF6,stroke: #534AB7,color: #26215C
+  classDef story fill: #E1F5EE,stroke: #0F6E56,color: #04342C
+  E1["Epic 1: [Epic Name]"]:::epic
+  E1 --> US01["US-01: [Story Name]"]:::story
+  E1 --> US02["US-02: [Story Name]"]:::story
+  E2["Epic 2: [Epic Name]"]:::epic
+  E2 --> US03["US-03: [Story Name]"]:::story
+Show this diagram inline in chat. In `IDE_FULL_PIPELINE`, save it to `domain-knowledge/[Domain_Name]/inputs/[Feature_File_Name]_story_map.md` as a fenced Mermaid block.
+* **Wait (HITL):** Ask: *"Does this story map correctly reflect the scope of the feature? Approve to continue to JTBD framing, or request changes."*
+* **Constraint:** DO NOT move to Step 2 until `Clarification_Confirmed` is `true` and the user has approved the story map.
 
 ### Step 2: Product Framing Approval (JTBD + User Stories)
 
@@ -90,7 +134,9 @@ When a user provides a raw idea or note, you MUST execute the following steps in
 * **Action:** Present the complete PRD draft (with reviewer notes inline) to the user.
 * **Mandate:** YOU MUST STOP HERE. Ask the user: *"Here is the reviewed PRD draft. Would you like to adjust anything, add information, or approve this version?"*
 * **Wait:** DO NOT proceed to export or finalization until the user explicitly approves.
-* **Edit loop:** If the user requests substantive edits (new stories, new flows, changed business rules, changed acceptance criteria, API changes, or diagram changes), update the draft, re-run Step 4 on the affected sections, then return to Step 5. Cosmetic edits can skip Step 4.
+* **Edit loop:** If the user requests substantive edits (new stories, new flows, changed business rules, changed acceptance criteria, API changes, or diagram changes), update the draft, re-run Step 4 on the affected sections, then return to Step 5.
+* **Cosmetic edits** (may skip Step 4): wording changes, grammar corrections, label renaming, reordering of existing list items with no change to meaning, or formatting adjustments. A cosmetic edit does not add, remove, or change acceptance criteria, business rules, user flows, actor definitions, API specs, success metrics, or diagram content.
+* **Substantive edits** (must re-trigger Step 4): any change that adds or removes a user story, modifies an acceptance criteria condition, changes a business rule, adds an actor, alters an API contract, changes a success metric target, or modifies diagram scope. When in doubt, treat the edit as substantive.
 * **Loop cap:** After 3 review/edit passes, surface any remaining reviewer notes or open issues and ask the user for an explicit override before proceeding.
 * **Text-only completion:** If `Delivery_Mode` is `CHAT_TEXT_ONLY`, final approval completes the workflow. Return the final approved PRD text and do not proceed to Step 5.5 or Step 6 unless the user explicitly switches to `IDE_FULL_PIPELINE`.
 
@@ -123,3 +169,4 @@ When a user provides a raw idea or note, you MUST execute the following steps in
 * **File safety:** Normalize generated filenames before writing. Avoid spaces, path separators, reserved characters, and OS-rooted paths.
 * **Non-blocking integrations:** Optional capabilities such as Stitch MCP or a hosted export wrapper must never block final PRD delivery. If they are unavailable, fall back to the local path or skip the optional step.
 * **Single source of truth for diagrams:** All diagram generation rules live exclusively in `diagram-writer/SKILL.md`. Do not read diagram rules from any other file.
+* **Feature_File_Name derivation:** When constructing a file-safe version of `Feature_Name`, apply these normalization steps in order: (1) trim leading and trailing whitespace, (2) replace all spaces and underscores with hyphens, (3) remove all characters that are not alphanumeric or hyphens, (4) collapse consecutive hyphens to one, (5) convert to lowercase. Example: `"Group Lucky Money 🧧"` → `group-lucky-money`. Use this normalized value for all file and folder names in `domain-knowledge/[Domain_Name]/`. Never construct paths with the raw `Feature_Name`.
