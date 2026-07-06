@@ -8,7 +8,7 @@ import tempfile
 
 
 REVIEWER_NOTE_PATTERN = re.compile(
-    r"(?ms)^> \[!WARNING\] REVIEWER'S NOTE \(RN-\d+\)\n"
+    r"(?m)^> \[!WARNING\] REVIEWER'S NOTE \(RN-\d+\)\n"
     r"(?:^> .*\n?)+"
     r"(?:\n|$)"
 )

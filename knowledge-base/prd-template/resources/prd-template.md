@@ -22,7 +22,7 @@
 
 ## 2. Feature Overview
 
-### 2.1 Problem Stateme   nt / Context
+### 2.1 Problem Statement / Context
 
 **Context**
 

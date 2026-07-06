@@ -50,6 +50,8 @@ def check_input_schema():
     expected_required = {
         "Delivery_Mode",
         "Output_Artifacts",
+        "Active_Sections",
+        "Clarification_Confirmed",
         "Domain_Name",
         "Feature_Name",
         "Input_Type",
@@ -91,6 +93,30 @@ def check_input_schema():
         set(diagram_items.get("enum", []))
         == {"None", "Activity Diagram", "Sequence Diagram", "BPMN"},
         "Diagram_Requirements enum is invalid",
+    )
+
+    active_sections_items = schema["properties"]["Active_Sections"]["items"]
+    assert_true(
+        set(active_sections_items.get("enum", []))
+        == {
+            "Problem Statement",
+            "JTBD",
+            "Goals & Success Metrics",
+            "Assumptions & Open Questions",
+            "Feature Epics & User Stories",
+            "Business Rules",
+            "Process Diagrams",
+            "Use Case Specifications",
+            "Functional Requirements",
+            "Non-Functional Requirements",
+            "UI/UX Specifications",
+            "API / Technical Specs",
+        },
+        "Active_Sections enum is invalid",
+    )
+    assert_true(
+        schema["properties"]["Clarification_Confirmed"].get("type") == "boolean",
+        "Clarification_Confirmed must be a boolean",
     )
 
     domain_pattern = schema["properties"]["Domain_Name"]["pattern"]
@@ -154,15 +180,29 @@ def check_export_helper():
         ),
         "Default DOCX path failed",
     )
+    stripped = export_docx.strip_reviewer_notes(
+        "# PRD\n\n## Overview\nIntro.\n\n"
+        "> [!WARNING] REVIEWER'S NOTE (RN-01)\n"
+        "> **Risk:** Gap.\n"
+        "> **Option A:** Fix A.\n"
+        "> **Option B:** Fix B.\n\n"
+        "## Requirements\nKeep me.\n\n"
+        "> [!WARNING] REVIEWER'S NOTE (RN-02)\n"
+        "> **Risk:** Gap two.\n"
+        "> **Option A:** Fix A2.\n"
+        "> **Option B:** Fix B2.\n\n"
+        "## Next\nContent\n"
+    )
+    assert_true("REVIEWER'S NOTE" not in stripped, "Reviewer note stripping failed")
+    # Content between and after notes must survive: a DOTALL regex would greedily
+    # consume everything from the first note to end of file.
     assert_true(
-        "REVIEWER'S NOTE" not in export_docx.strip_reviewer_notes(
-            "# PRD\n\n> [!WARNING] REVIEWER'S NOTE (RN-01)\n"
-            "> **Risk:** Gap.\n"
-            "> **Option A:** Fix A.\n"
-            "> **Option B:** Fix B.\n\n"
-            "## Next\nContent\n"
-        ),
-        "Reviewer note stripping failed",
+        "## Requirements" in stripped and "Keep me." in stripped,
+        "Reviewer note stripping removed content between notes",
+    )
+    assert_true(
+        "## Next" in stripped and "Content" in stripped,
+        "Reviewer note stripping removed content after the note block",
     )
 
 
