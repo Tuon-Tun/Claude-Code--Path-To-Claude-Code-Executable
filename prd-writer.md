@@ -57,7 +57,7 @@ When a user provides a raw idea or note, you MUST execute the following steps in
 ### Step 1.5: Clarification & Mandatory Confirmation Gate (CRITICAL PAUSE)
 
 * **Purpose:** This step exists to resolve all `[NEEDS_CLARIFICATION]` gaps before any framing or drafting work begins. It saves significant tokens by preventing the model from drafting incomplete sections that must be redone later.
-* **Action:** Review the approved JSON from Step 1. For every field containing `[NEEDS_CLARIFICATION]`, generate a concise, numbered list of clarification questions and present them to the user in one message. Group related questions together. Do not ask the same information twice. If the JSON contains no `[NEEDS_CLARIFICATION]` fields, skip the clarification questions and go directly to the story map.
+* **Action:** Review the approved JSON from Step 1. For every field containing `[NEEDS_CLARIFICATION]`, generate a concise, numbered list of clarification questions and present them to the user in one message. Group related questions together. Do not ask the same information twice.
 * **Example format:**
   Before we begin framing, I need to clarify a few points:
     [Target_Users] Who is the primary actor? (e.g., logged-in wallet user, guest, admin)
@@ -65,20 +65,10 @@ When a user provides a raw idea or note, you MUST execute the following steps in
     [Business_Logic_and_Rules] What happens if a user tries to claim after all envelopes are taken?
   Please answer the ones you can — any still unknown can stay as TBD.
 * **Update the JSON:** After the user responds, update all clarifiable fields in the JSON. Fields the user cannot answer remain as `[NEEDS_CLARIFICATION]` and surface as `TBD` in the PRD.
-* **Set `Clarification_Confirmed: true`** in the JSON only after the user explicitly approves the story map (with or without prior clarification questions). Do not proceed to Step 2 until this field is `true`.
-* **User story overview diagram:** After the user approves the clarified JSON, generate a Mermaid flowchart showing the epic and story hierarchy from `Epic_Candidates` and `User_Story_Candidates`. This gives the user a visual summary of the feature scope before full drafting begins.
-  Use this format:
-  flowchart TD
-  classDef epic fill:#CECBF6,stroke:#534AB7,color:#26215C
-  classDef story fill:#E1F5EE,stroke:#0F6E56,color:#04342C
-  E1["Epic 1: [Epic Name]"]:::epic
-  E1 --> US01["US-01: [Story Name]"]:::story
-  E1 --> US02["US-02: [Story Name]"]:::story
-  E2["Epic 2: [Epic Name]"]:::epic
-  E2 --> US03["US-03: [Story Name]"]:::story
-Show this diagram inline in chat. In `IDE_FULL_PIPELINE`, save it to `domain-knowledge/[Domain_Name]/inputs/[Feature_File_Name]_story_map.md` as a fenced Mermaid block.
-* **Wait (HITL):** Ask: *"Does this story map correctly reflect the scope of the feature? Approve to continue to JTBD framing, or request changes."*
-* **Constraint:** DO NOT move to Step 2 until `Clarification_Confirmed` is `true` and the user has approved the story map.
+* **No-gap shortcut:** If the approved JSON contains no `[NEEDS_CLARIFICATION]` fields, tell the user the brief is complete, ask for a single confirmation to continue, and skip the question list.
+* **Set `Clarification_Confirmed: true`** in the JSON only after the user explicitly confirms the clarified brief (or confirms the no-gap shortcut). Do not proceed to Step 2 until this field is `true`.
+* **Wait (HITL):** Ask: *"Is the brief now correct and complete? Approve to continue to JTBD framing, or request changes."*
+* **Constraint:** DO NOT move to Step 2 until `Clarification_Confirmed` is `true`.
 
 ### Step 2: Product Framing Approval (JTBD + User Stories)
 
@@ -88,7 +78,7 @@ Show this diagram inline in chat. In `IDE_FULL_PIPELINE`, save it to `domain-kno
 * **Conflict check:** If domain context contradicts the approved JSON (different terminology, conflicting rules, deprecated flows), pause and ask the user how to reconcile before drafting.
 * **Required skill:** Produce the framing output with `knowledge-base/product-framing/SKILL.md`, which applies both `knowledge-base/knowledge/jobs-to-be-done/SKILL.md` and `knowledge-base/knowledge/user-story-skill/SKILL.md`.
 * **Action:** Produce a **Product Framing Pack** before PRD drafting. It must include:
-  * JTBD statements by user type/scenario, including functional, emotional, and social dimensions when supported by input.
+  * JTBD statements by user type/scenario, each written as exactly one job story sentence: `When [situation], I want to [motivation], so I can [expected outcome].` Do not expand JTBD into functional/emotional/social dimension breakdowns.
   * Research status: mark JTBD as `validated` only when user-provided research supports it; otherwise mark it as `hypothesized, needs validation`.
   * Epic hierarchy and INVEST-standard User Stories.
   * Acceptance Criteria using the `Done when` standard, including happy path and negative/error conditions.
@@ -115,6 +105,7 @@ Show this diagram inline in chat. In `IDE_FULL_PIPELINE`, save it to `domain-kno
 
 * **Action:** Pass the full drafted PRD text to `knowledge-base/prd-reviewer.md`.
 * **Expected output:** The reviewer returns a **JSON array** of reviewer notes. Each note has: `note_id`, `section`, `risk`, `fix_a`, `fix_b`.
+* **Invalid reviewer output:** If the reviewer response is not a valid JSON array, re-run the reviewer once. If it is still invalid, skip note insertion, surface the raw reviewer output to the user at Step 5, and continue — a malformed review must not block the pipeline.
 * **IDE note insertion:** In `IDE_FULL_PIPELINE`, insert each note directly below the affected section heading in the PRD file. Use this exact format so notes are visually distinct:
 
   ```
@@ -140,12 +131,12 @@ Show this diagram inline in chat. In `IDE_FULL_PIPELINE`, save it to `domain-kno
 * **Loop cap:** After 3 review/edit passes, surface any remaining reviewer notes or open issues and ask the user for an explicit override before proceeding.
 * **Text-only completion:** If `Delivery_Mode` is `CHAT_TEXT_ONLY`, final approval completes the workflow. Return the final approved PRD text and do not proceed to Step 5.5 or Step 6 unless the user explicitly switches to `IDE_FULL_PIPELINE`.
 
-### Step 5.5: Wireframe/UI Creation (Call MCP Stitch)
+### Step 5.5: Wireframe/UI Creation (Optional Design Tool)
 
 * **Mode rule:** This step is available only in `IDE_FULL_PIPELINE`.
-* **Action:** After the user approves the PRD in Step 5, extract `UI/UX Specifications` or interface requirements and send them to Stitch MCP.
-* **Objective:** Call the Stitch MCP `create_project` and `generate_screen_from_text` capabilities for each screen defined in the PRD. Exact tool names depend on the MCP host.
-* **Availability rule:** Only do this if Stitch MCP capabilities are available in the current environment. If they are unavailable, inform the user and continue to Step 6 without blocking export.
+* **Action:** After the user approves the PRD in Step 5, extract `UI/UX Specifications` or interface requirements and send them to whatever design/wireframe MCP tool is available in the current environment (for example Stitch, Figma, or an equivalent).
+* **Objective:** Generate one wireframe or screen per screen defined in the PRD, using the design tool's project-creation and screen-generation capabilities. Exact tool names depend on the MCP host — discover them at runtime rather than assuming a specific vendor.
+* **Availability rule:** Only do this if a wireframe-capable design tool is available in the current environment. If none is available, inform the user and continue to Step 6 without blocking export.
 
 ### Step 6: File Export (Call Docx Converter)
 
@@ -167,6 +158,6 @@ Show this diagram inline in chat. In `IDE_FULL_PIPELINE`, save it to `domain-kno
 * **Framing as source of truth:** Do not draft the PRD directly from raw requirements once Step 2 exists. Use the approved JTBD and User Stories as the product backbone.
 * **Schema discipline:** Treat `knowledge-base/input-router/resources/output_schema.json` as the contract for Step 1. If the JSON does not validate, fix the JSON or ask for clarification before proceeding.
 * **File safety:** Normalize generated filenames before writing. Avoid spaces, path separators, reserved characters, and OS-rooted paths.
-* **Non-blocking integrations:** Optional capabilities such as Stitch MCP or a hosted export wrapper must never block final PRD delivery. If they are unavailable, fall back to the local path or skip the optional step.
+* **Non-blocking integrations:** Optional capabilities such as design MCP tools or a hosted export wrapper must never block final PRD delivery. If they are unavailable, fall back to the local path or skip the optional step.
 * **Single source of truth for diagrams:** All diagram generation rules live exclusively in `diagram-writer/SKILL.md`. Do not read diagram rules from any other file.
 * **Feature_File_Name derivation:** When constructing a file-safe version of `Feature_Name`, apply these normalization steps in order: (1) trim leading and trailing whitespace, (2) replace all spaces and underscores with hyphens, (3) remove all characters that are not alphanumeric or hyphens, (4) collapse consecutive hyphens to one, (5) convert to lowercase. Example: `"Group Lucky Money 🧧"` → `group-lucky-money`. Use this normalized value for all file and folder names in `domain-knowledge/[Domain_Name]/`. Never construct paths with the raw `Feature_Name`.
