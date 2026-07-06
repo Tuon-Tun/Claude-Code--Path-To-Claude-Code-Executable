@@ -22,7 +22,7 @@
 
 ## 2. Feature Overview
 
-### 2.1 Problem Stateme   nt / Context
+### 2.1 Problem Statement / Context
 
 **Context**
 
@@ -43,16 +43,13 @@
   One block per distinct actor type, role, or usage context — no upper limit.
   Write one JTBD block per actor when their situation, motivation, or expected outcome differs.
   Do not collapse different actors into a single statement.
+  Each JTBD is exactly one job story sentence — no dimension tables or bullets.
   Skip this section entirely only if "JTBD" was excluded from Active_Sections.
 -->
 
 **JTBD - [User Type / Scenario]**
 
 When [situation], I want to [motivation], so I can [expected outcome].
-
-- **Functional job:** [The task the user is trying to accomplish]
-- **Emotional job:** [How the user wants to feel, or avoid feeling]
-- **Social job:** [How the user wants to be perceived, and by whom]
 
 ---
 

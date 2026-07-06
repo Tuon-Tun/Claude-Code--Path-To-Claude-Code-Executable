@@ -50,7 +50,7 @@ Do not draft the full PRD. Do not export files. This skill produces only the Pro
 - Each story must include at least one happy-path AC and one negative/error AC when applicable.
 - Keep UI and implementation details out of the story statement unless they are truly the user outcome.
 - Preserve the user's language.
-- JTBD statements must follow job story format: `When [situation], I want to [motivation], so I can [expected outcome].` Do not use a table for functional/emotional/social dimensions. Write each as a labeled bullet line below the job story statement. Keep each bullet to one sentence.
+- JTBD statements must follow the single-sentence job story format: `When [situation], I want to [motivation], so I can [expected outcome].` Write exactly one sentence per JTBD block. Do not break the job into functional/emotional/social dimensions, tables, or bullets — the single statement is the complete JTBD output.
 - When the input involves multiple distinct actor types or usage contexts, write one JTBD block per actor type. Do not collapse different actors into a single job statement. Split when the situation, motivation, or expected outcome differs meaningfully between actors.
 
 ---
@@ -80,10 +80,6 @@ Return Markdown only, with these sections:
 **Status:** [validated / hypothesized, needs validation]
 
 When [situation], I want to [motivation], so I can [expected outcome].
-
-- **Functional job:** [The task the user is trying to accomplish — solution-agnostic, stable over time]
-- **Emotional job:** [How the user wants to feel, or what feeling they want to avoid]
-- **Social job:** [How the user wants to be perceived, and by whom]
 
 ## 3. Epics & User Stories
 

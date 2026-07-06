@@ -64,19 +64,23 @@ The workflow starts by selecting one of two delivery modes:
 - `IDE_FULL_PIPELINE`: creates files under `domain-knowledge/` and can export DOCX.
 - `CHAT_TEXT_ONLY`: does not write files or export documents; returns structured text in chat.
 
-The process has six main steps, with human approval gates at the key decision points.
+The process runs through the steps below, with human approval gates at the key decision points.
 
 ```mermaid
 flowchart TD
     A([Raw requirements]) --> S0
 
-    S0["Step 0 - Mode + diagram confirmation\nprd-writer.md"]
-    S0 --> H0{{"HITL - confirm mode, artifacts, diagrams"}}
+    S0["Step 0 - Mode + diagrams + section agenda\nprd-writer.md"]
+    S0 --> H0{{"HITL - confirm mode, artifacts, diagrams, sections"}}
     H0 --> S1
 
     S1["Step 1 - Input Router\ninput-router/SKILL.md -> structured JSON"]
     S1 --> H1{{"HITL - approve JSON"}}
-    H1 --> S2
+    H1 --> S15
+
+    S15["Step 1.5 - Clarification gate\nresolve NEEDS_CLARIFICATION fields"]
+    S15 --> H15{{"HITL - approve clarified brief"}}
+    H15 --> S2
 
     S2["Step 2 - Product Framing\nJTBD + User Stories + AC"]
     S2 --> H2{{"HITL - approve JTBD + User Stories"}}
@@ -96,7 +100,7 @@ flowchart TD
     H5 -->|"approved + text-only"| ZT([Final PRD text])
     H5 -->|"approved + IDE"| S55
 
-    S55["Step 5.5 - Wireframes (optional)\nStitch MCP - skipped if unavailable"]
+    S55["Step 5.5 - Wireframes (optional)\ndesign MCP tool - skipped if unavailable"]
     S55 --> S6
 
     S6["Step 6 - File export\ndocx-converter/SKILL.md -> export_docx.py"]
@@ -104,6 +108,7 @@ flowchart TD
 
     style H0 fill:#FAC775,stroke:#BA7517,color:#4A2800
     style H1 fill:#FAC775,stroke:#BA7517,color:#4A2800
+    style H15 fill:#FAC775,stroke:#BA7517,color:#4A2800
     style H2 fill:#FAC775,stroke:#BA7517,color:#4A2800
     style H5 fill:#FAC775,stroke:#BA7517,color:#4A2800
     style S55 fill:#E8E8E8,stroke:#888,color:#333
@@ -112,12 +117,13 @@ flowchart TD
     style ZF fill:#C0DDB3,stroke:#3B6D11,color:#173404
 ```
 
-### Step 0: Delivery Mode & Diagram Requirement Confirmation
+### Step 0: Delivery Mode, Diagram & Section Agenda Confirmation
 
 - The system first determines whether the user wants `IDE_FULL_PIPELINE` or `CHAT_TEXT_ONLY`.
 - In IDE mode, the system confirms whether final artifacts should include Markdown only or Markdown plus DOCX.
 - The system checks whether the feature needs any diagrams: BPMN, Activity Diagram, or Sequence Diagram.
-- If the user has not specified mode or diagram needs, the system must pause and ask before planning the rest of the workflow.
+- The system presents the twelve PRD sections as a numbered agenda and asks the user to confirm which apply. Excluded sections are skipped during drafting; the default is all sections active.
+- If the user has not specified mode, diagram needs, or the section agenda, the system must pause and ask before planning the rest of the workflow.
 
 ### Step 1: Data Pre-processing (Input Router)
 
@@ -130,6 +136,13 @@ flowchart TD
 - In text-only mode, the JSON is shown in chat but not written to disk.
 - The user must review and approve this JSON before product framing begins.
 
+### Step 1.5: Clarification Gate (Critical Pause)
+
+- The system reviews the approved JSON and asks one consolidated batch of questions for every `[NEEDS_CLARIFICATION]` field.
+- Fields the user cannot answer stay as `[NEEDS_CLARIFICATION]` and surface as `TBD` in the PRD — the system never invents missing details.
+- If the JSON has no gaps, the system asks for a single confirmation and moves on.
+- `Clarification_Confirmed` is set to `true` only after the user explicitly approves the clarified brief. Framing cannot start before that.
+
 ### Step 2: Product Framing Approval (JTBD + User Stories)
 
 - In IDE mode, the system reads `domain-knowledge/[Domain_Name]/rules.md` and any existing PRDs, framing files, or prior inputs in the same domain.
@@ -137,7 +150,7 @@ flowchart TD
 - The system generates the Product Framing Pack with `knowledge-base/product-framing/SKILL.md`, which applies standards from:
   - `knowledge-base/knowledge/jobs-to-be-done/SKILL.md`
   - `knowledge-base/knowledge/user-story-skill/SKILL.md`
-- The output is a Product Framing Pack containing JTBD statements, research status, Epics, INVEST-standard User Stories, `Done when` acceptance criteria, traceability notes, and open questions.
+- The output is a Product Framing Pack containing single-sentence JTBD job stories (`When [situation], I want to [motivation], so I can [expected outcome].`), research status, Epics, INVEST-standard User Stories, `Done when` acceptance criteria, traceability notes, and open questions.
 - In IDE mode, the Product Framing Pack is saved under `domain-knowledge/[Domain_Name]/inputs/[Feature_File_Name]_framing.md`.
 - In text-only mode, the Product Framing Pack is shown in chat but not written to disk.
 - The user must review and approve this Product Framing Pack before drafting begins.
@@ -167,12 +180,12 @@ flowchart TD
 - Substantive edits return to Step 4 for re-review before the draft is shown again. Cosmetic edits may skip re-review.
 - In text-only mode, approval completes the workflow and the final PRD remains in chat.
 
-### Step 5.5: Optional Wireframe/UI Creation (Stitch MCP)
+### Step 5.5: Optional Wireframe/UI Creation (Design MCP Tool)
 
 - This step runs only in IDE full pipeline mode.
 - After the PRD is approved, the system may generate wireframes based on the `UI/UX Specifications` section.
-- This step should run only if the Stitch MCP tools are available.
-- If Stitch is unavailable, the workflow should continue to export without blocking.
+- This step should run only if a wireframe-capable design MCP tool (for example Stitch or Figma) is available in the environment.
+- If no design tool is available, the workflow should continue to export without blocking.
 
 ### Step 6: File Export (DOCX)
 
