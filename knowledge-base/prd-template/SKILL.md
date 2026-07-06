@@ -32,10 +32,11 @@ If JTBD research is not provided in the approved brief, Product Framing Pack, or
 
 ## Phase 2 - Draft
 
-Load `resources/prd-template.md`. Fill every section. Use `TBD` only when the approved brief still contains an unresolved gap.
+Load `resources/prd-template.md`. Fill every section listed in `Active_Sections` from the approved JSON. For any section **not** in `Active_Sections`, replace its entire content with `_Section excluded at user's request._` and keep the heading so the document structure stays intact. Use `TBD` only when the approved brief still contains an unresolved gap.
 
 **Rules:**
 
+- **Active_Sections gate:** Before writing any section, check whether its name appears in `Active_Sections`. The mapping between JSON values and template headings is: `"Problem Statement"` → 2.1, `"JTBD"` → 2.2, `"Goals & Success Metrics"` → 2.3, `"Assumptions & Open Questions"` → 2.4, `"Feature Epics & User Stories"` → 3.1, `"Business Rules"` → 3.2, `"Process Diagrams"` → 3.3, `"Use Case Specifications"` → 3.4, `"Functional Requirements"` → FR table in 3.5, `"Non-Functional Requirements"` → NFR table in 3.5, `"UI/UX Specifications"` → 3.6, `"API / Technical Specs"` → 3.7.
 - Acceptance Criteria must follow the `Done when` standard from `user-story-skill`.
 - Apply JTBD and user-story standards strictly; do not shortcut them to save tokens.
 - Use the approved Product Framing Pack as the source of truth for Section 2.2 and Section 3.1.
@@ -75,6 +76,7 @@ Do not pre-fill Version History by default; the PM owns it. Keep the table forma
 ## Quality Checklist
 
 - All template section headers are present.
+- Sections absent from `Active_Sections` contain only `_Section excluded at user's request._`.
 - Section 3.3 contains only the diagrams explicitly requested by the user.
 - No blank sections remain; use `TBD` when information is still pending.
 - The language matches the user's language.

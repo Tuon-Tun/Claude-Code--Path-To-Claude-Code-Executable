@@ -55,27 +55,27 @@
       }
     },
     "Active_Sections": {
-    "type": "array",
-    "description": "PRD sections the user has confirmed they want included. Sections not listed here are skipped during drafting.",
-    "minItems": 1,
-    "uniqueItems": true,
-    "items": {
-      "type": "string",
-      "enum": [
-        "Problem Statement",
-        "JTBD",
-        "Goals & Success Metrics",
-        "Assumptions & Open Questions",
-        "Feature Epics & User Stories",
-        "Business Rules",
-        "Process Diagrams",
-        "Use Case Specifications",
-        "Functional Requirements",
-        "Non-Functional Requirements",
-        "UI/UX Specifications",
-        "API / Technical Specs"
-      ]
-    }
+      "type": "array",
+      "description": "PRD sections the user has confirmed they want included. Sections not listed here are skipped during drafting.",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "Problem Statement",
+          "JTBD",
+          "Goals & Success Metrics",
+          "Assumptions & Open Questions",
+          "Feature Epics & User Stories",
+          "Business Rules",
+          "Process Diagrams",
+          "Use Case Specifications",
+          "Functional Requirements",
+          "Non-Functional Requirements",
+          "UI/UX Specifications",
+          "API / Technical Specs"
+        ]
+      }
     },
     "Clarification_Confirmed": {
       "type": "boolean",

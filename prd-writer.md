@@ -57,7 +57,7 @@ When a user provides a raw idea or note, you MUST execute the following steps in
 ### Step 1.5: Clarification & Mandatory Confirmation Gate (CRITICAL PAUSE)
 
 * **Purpose:** This step exists to resolve all `[NEEDS_CLARIFICATION]` gaps before any framing or drafting work begins. It saves significant tokens by preventing the model from drafting incomplete sections that must be redone later.
-* **Action:** Review the approved JSON from Step 1. For every field containing `[NEEDS_CLARIFICATION]`, generate a concise, numbered list of clarification questions and present them to the user in one message. Group related questions together. Do not ask the same information twice.
+* **Action:** Review the approved JSON from Step 1. For every field containing `[NEEDS_CLARIFICATION]`, generate a concise, numbered list of clarification questions and present them to the user in one message. Group related questions together. Do not ask the same information twice. If the JSON contains no `[NEEDS_CLARIFICATION]` fields, skip the clarification questions and go directly to the story map.
 * **Example format:**
   Before we begin framing, I need to clarify a few points:
     [Target_Users] Who is the primary actor? (e.g., logged-in wallet user, guest, admin)
@@ -65,12 +65,12 @@ When a user provides a raw idea or note, you MUST execute the following steps in
     [Business_Logic_and_Rules] What happens if a user tries to claim after all envelopes are taken?
   Please answer the ones you can — any still unknown can stay as TBD.
 * **Update the JSON:** After the user responds, update all clarifiable fields in the JSON. Fields the user cannot answer remain as `[NEEDS_CLARIFICATION]` and surface as `TBD` in the PRD.
-* **Set `Clarification_Confirmed: true`** in the JSON only after the user explicitly approves the updated version. Do not proceed to Step 2 until this field is `true`.
+* **Set `Clarification_Confirmed: true`** in the JSON only after the user explicitly approves the story map (with or without prior clarification questions). Do not proceed to Step 2 until this field is `true`.
 * **User story overview diagram:** After the user approves the clarified JSON, generate a Mermaid flowchart showing the epic and story hierarchy from `Epic_Candidates` and `User_Story_Candidates`. This gives the user a visual summary of the feature scope before full drafting begins.
   Use this format:
   flowchart TD
-  classDef epic fill: #CECBF6,stroke: #534AB7,color: #26215C
-  classDef story fill: #E1F5EE,stroke: #0F6E56,color: #04342C
+  classDef epic fill:#CECBF6,stroke:#534AB7,color:#26215C
+  classDef story fill:#E1F5EE,stroke:#0F6E56,color:#04342C
   E1["Epic 1: [Epic Name]"]:::epic
   E1 --> US01["US-01: [Story Name]"]:::story
   E1 --> US02["US-02: [Story Name]"]:::story
