@@ -4,6 +4,21 @@ This document explains how to use the PRD Writer workflow and how the end-to-end
 
 ---
 
+## Quick Start — Web App (no IDE required)
+
+If you are not comfortable with IDEs or the command line, use the bundled web app. It runs the exact same pipeline, entirely in your browser.
+
+1. Download [`webapp/index.html`](./webapp/index.html) (or clone the repo) and **open it in any modern browser** — no install, no server.
+2. Click **⚙️ Settings** and paste your **Anthropic API key** (create one at console.anthropic.com). Pick a model — click *Load my models* to list the ones your account can use.
+3. Optionally add a **GitHub token + repository** to save finished PRDs straight into `domain-knowledge/<domain>/PRDs/` of that repo. The token needs the *Contents: read & write* permission.
+4. Describe your feature, tick the sections and diagrams you want, and walk through the approval gates. Export as Markdown, Word (.doc), or straight to GitHub at the end.
+
+Privacy: the API key is stored only in your browser's localStorage, and every call goes directly from your browser to `api.anthropic.com` / `api.github.com` — there is no middleman server. The UI supports English and Vietnamese.
+
+For maintainers: `webapp/index.html` is generated — after changing anything under `knowledge-base/`, run `python webapp/build.py` and commit the result. `smoke_test.py` fails if the embedded prompts drift from the sources.
+
+---
+
 ## 0. Prerequisites
 
 Before running the full IDE pipeline, ensure your environment meets the following requirements. These requirements are not needed when running in chat text-only mode.
@@ -59,10 +74,13 @@ The PRD workflow is orchestrated by the **Master PRD Writer** in [`prd-writer.md
 
 **BPMN warning:** BPMN output is token-heavy and usually produces only a basic result because coordinates must be estimated manually.
 
-The workflow starts by selecting one of two delivery modes:
+There are three ways to run the same pipeline:
 
-- `IDE_FULL_PIPELINE`: creates files under `domain-knowledge/` and can export DOCX.
-- `CHAT_TEXT_ONLY`: does not write files or export documents; returns structured text in chat.
+| How | For whom | Output |
+|-----|----------|--------|
+| **Web app** (`webapp/index.html`) | Anyone with a browser and an Anthropic API key — no IDE, no install | Markdown / Word download, print-to-PDF, or save straight to a GitHub repo |
+| `IDE_FULL_PIPELINE` | Users of Claude Code or another agent IDE working inside this repo | Files under `domain-knowledge/`, optional DOCX export |
+| `CHAT_TEXT_ONLY` | Chat-agent sessions where no files should be created | Structured text returned in chat |
 
 The process runs through the steps below, with human approval gates at the key decision points.
 
@@ -245,3 +263,35 @@ In those cases, use:
 - `knowledge-base/knowledge/user-story-skill/SKILL.md` for INVEST-standard user stories
 
 This keeps the workflow lean and uses effort only where it adds real value.
+
+---
+
+## 4. Repository Structure
+
+```
+├── README.md                          ← this guide
+├── prd-writer.md                      ← master orchestrator (all pipeline steps & gates)
+├── webapp/
+│   ├── index.html                     ← the web app — open in a browser, no install (generated)
+│   ├── app.src.html                   ← web app source template
+│   └── build.py                       ← embeds knowledge-base prompts into index.html
+└── knowledge-base/
+    ├── input-router/                  ← Step 1: raw notes → structured JSON brief (+ schema)
+    ├── product-framing/               ← Step 2: JTBD job stories + INVEST user stories + AC
+    ├── prd-template/                  ← Step 3: PRD template renderer
+    │   ├── resources/prd-template.md  ← the standard PRD template
+    │   └── diagram-writer/            ← the only source of diagram-generation rules
+    ├── prd-reviewer.md                ← Step 4: independent QA reviewer contract
+    ├── docx-converter/                ← Step 6: DOCX export skill (+ tool schema)
+    ├── knowledge/                     ← optional deep-dive skills (JTBD research, user stories)
+    └── scripts/
+        ├── create_domain.py           ← initializes domain-knowledge/<domain>/
+        ├── export_docx.py             ← Markdown → DOCX via pypandoc
+        └── smoke_test.py              ← 6-check consistency gate (schema, scripts, webapp sync)
+```
+
+Consistency rules for contributors:
+
+- Any change under `knowledge-base/` requires `python webapp/build.py` and committing the regenerated `webapp/index.html` — `smoke_test.py` fails otherwise.
+- `output_schema.json` is the Step 1 contract; if you change its `required` list or enums, update `smoke_test.py` in the same commit.
+- Diagram rules live only in `prd-template/diagram-writer/SKILL.md`; never duplicate them elsewhere.

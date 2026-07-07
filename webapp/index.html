@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRD Writer Studio</title>
+<style>
+  :root {
+    --bg: #f5f6fa; --card: #ffffff; --ink: #1c2333; --muted: #626b7f;
+    --line: #dde1ea; --accent: #4653c9; --accent-ink: #ffffff;
+    --ok: #1d7a4f; --warn: #a05f0d; --err: #b3261e;
+    --chip: #eceefb; --code-bg: #f0f2f8; --shadow: 0 1px 3px rgba(20,24,40,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141c; --card: #1c202c; --ink: #e8eaf2; --muted: #9aa3b8;
+      --line: #313749; --accent: #8b95f2; --accent-ink: #12141c;
+      --ok: #5ecf9a; --warn: #e2b45c; --err: #ef8a84;
+      --chip: #272d40; --code-bg: #161927; --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20; }
+  .brand { font-weight: 700; font-size: 17px; }
+  .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  .hdr-actions { display: flex; gap: 8px; align-items: center; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 80px; }
+
+  #stepsBar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 18px; list-style: none; }
+  #stepsBar li { padding: 4px 11px; border-radius: 999px; background: var(--chip);
+    color: var(--muted); font-size: 12.5px; border: 1px solid transparent; }
+  #stepsBar li.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  #stepsBar li.done { color: var(--ok); border-color: var(--ok); background: transparent; }
+  #stepsBar li.skipped { text-decoration: line-through; opacity: .6; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 4px; font-size: 16px; }
+  .card .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .card.collapsed .body { display: none; }
+  .card .headrow { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .badge { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+  .badge.ok { color: var(--ok); } .badge.warn { color: var(--warn); } .badge.err { color: var(--err); }
+
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  textarea, input[type=text], input[type=password], input[type=number], select {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--ink); font: inherit; }
+  textarea { min-height: 120px; resize: vertical; }
+  textarea.tall { min-height: 220px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 220px; }
+
+  .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 14px; margin-top: 6px; }
+  .checks label, .inline-check { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 13.5px; margin: 2px 0; cursor: pointer; }
+  .checks input, .inline-check input { width: auto; }
+
+  button { font: inherit; font-size: 13.5px; font-weight: 600; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.small { padding: 5px 10px; font-size: 12.5px; font-weight: 500; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  pre.stream { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+    font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--muted);
+    border-top-color: transparent; border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: -2px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .status.err { color: var(--err); }
+  .status.ok { color: var(--ok); }
+
+  .md { line-height: 1.6; overflow-x: auto; }
+  .md h1 { font-size: 21px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .md h2 { font-size: 18px; margin-top: 26px; }
+  .md h3 { font-size: 15.5px; margin-top: 20px; }
+  .md h4 { font-size: 14px; }
+  .md table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 13.5px; }
+  .md th, .md td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .md th { background: var(--chip); }
+  .md code { background: var(--code-bg); border-radius: 4px; padding: 1px 5px; font-size: 12.5px; }
+  .md pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; }
+  .md pre code { background: none; padding: 0; }
+  .md blockquote { margin: 10px 0; padding: 8px 14px; border-left: 4px solid var(--warn);
+    background: var(--chip); border-radius: 0 8px 8px 0; }
+  .md blockquote p { margin: 4px 0; }
+  .md hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink);
+    max-width: 620px; width: calc(100vw - 40px); padding: 22px 24px; }
+  dialog::backdrop { background: rgba(10,12,20,.55); }
+  .kv { font-size: 12.5px; color: var(--muted); }
+  .totals { font-size: 12px; color: var(--muted); }
+
+  @media print {
+    body * { visibility: hidden; }
+    #printTarget, #printTarget * { visibility: visible; }
+    #printTarget { position: absolute; left: 0; top: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">📝 PRD Writer Studio <small data-i18n="tagline"></small></div>
+  <div class="hdr-actions">
+    <span id="usageTotals" class="totals"></span>
+    <select id="langSel" class="small" style="width:auto">
+      <option value="en">EN</option>
+      <option value="vi">VI</option>
+    </select>
+    <button id="settingsBtn">⚙️ <span data-i18n="settings"></span></button>
+  </div>
+</header>
+
+<main>
+  <ol id="stepsBar"></ol>
+  <section id="flow"></section>
+</main>
+
+<dialog id="settingsDlg">
+  <h2 style="margin-top:0" data-i18n="settings"></h2>
+
+  <label data-i18n="apiKey"></label>
+  <input type="password" id="setKey" placeholder="sk-ant-...">
+  <div class="hint" data-i18n="apiKeyHint"></div>
+
+  <div class="row">
+    <div>
+      <label data-i18n="model"></label>
+      <input type="text" id="setModel" list="modelList" placeholder="claude-sonnet-5">
+      <datalist id="modelList"></datalist>
+      <div class="hint"><button class="small" id="loadModelsBtn" data-i18n="loadModels"></button> <span id="modelStatus" class="kv"></span></div>
+    </div>
+    <div>
+      <label data-i18n="maxTokens"></label>
+      <input type="number" id="setMaxTok" min="1024" max="64000" step="1024" value="8192">
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+
+  <label data-i18n="ghToken"></label>
+  <input type="password" id="setGhToken" placeholder="ghp_... / github_pat_... (optional)">
+  <div class="row">
+    <div>
+      <label data-i18n="ghRepo"></label>
+      <input type="text" id="setGhRepo" placeholder="owner/repository">
+    </div>
+    <div>
+      <label data-i18n="ghBranch"></label>
+      <input type="text" id="setGhBranch" placeholder="main" value="main">
+    </div>
+  </div>
+  <div class="hint" data-i18n="ghHint"></div>
+  <div class="hint"><button class="small" id="ghTestBtn" data-i18n="ghTest"></button> <span id="ghStatus" class="kv"></span></div>
+
+  <label class="inline-check" style="margin-top:14px">
+    <input type="checkbox" id="setFreshPrompts">
+    <span data-i18n="freshPrompts"></span>
+  </label>
+  <div class="hint" data-i18n="freshPromptsHint"></div>
+
+  <div class="actions" style="justify-content:flex-end">
+    <button id="settingsClose" class="primary" data-i18n="save"></button>
+  </div>
+</dialog>
+
+<script type="application/json" id="prompt-data">{"input_router": "---\nname: input-router\ndescription: Acts as a Master Input Router & Standardizer Agent. Parses messy product requirements, JTBDs, and wireframe notes, converting them into a structured format. Use this skill when the user provides raw feature ideas, notes, or rough requirements that need to be analyzed and standardized.\n---\n\n# Input Router & Standardizer Agent\n\nYou are an expert Input Router and Standardizer Agent. Your job is to take messy upstream input from a Product Owner, including JTBD notes, wireframe notes, raw business requirements, or exception scenarios, and convert it into a clean JSON brief that the PRD pipeline can use directly.\n\n## Objectives & Rules\n\n1. **Analyze from multiple angles:** Read the input carefully and separate business value, user flow, system constraints, requirements, success metrics, story candidates, and unknowns.\n2. **Zero hallucination:** Extract information only from the input and the provided project context. If an important field is missing, populate it with `\"[NEEDS_CLARIFICATION]\"`. Do not invent rules.\n3. **Normalize the domain:** Infer `Domain_Name` as a lowercase kebab-case slug such as `wallet-transfer`, `payment-gateway`, or `user-profile`.\n4. **Capture delivery mode:** Preserve the user's selected mode as `Delivery_Mode`: `IDE_FULL_PIPELINE` for repository/file output, or `CHAT_TEXT_ONLY` for chat response output only. Populate `Output_Artifacts` accordingly.\n5. **Capture JTBD signals:** Populate `JTBD_Candidates` when the input implies a performer, situation, motivation, or expected outcome. Mark missing fields as `[NEEDS_CLARIFICATION]`; Product Framing will refine them into single-sentence job stories later.\n6. **Capture story structure early:** Read `knowledge-base/knowledge/user-story-skill/SKILL.md` before extracting `User_Story_Candidates`. If the feature includes multiple actors, scenarios, or goals, populate `Epic_Candidates` and `User_Story_Candidates` instead of collapsing everything into a single primary story.\n7. **Break logic into explicit rules:** For any feature with calculations, thresholds, permissions, or conditional behavior, split the business logic into clear bullet-level statements in the JSON arrays.\n8. **Strict output contract:** Read `resources/output_schema.json` before producing the result. It is a JSON Schema, not an example payload. Return a JSON instance that validates against it, with all required fields present and no extra fields.\n9. **Diagram enum:** Populate `Diagram_Requirements` with one or more of exactly: `None`, `Activity Diagram`, `Sequence Diagram`, `BPMN`. If the user explicitly requests no diagrams, use `[\"None\"]`.\n10. **Normalize diagram types:** If the user's input contains a diagram type that does not exactly match one of `None`, `Activity Diagram`, `Sequence Diagram`, `BPMN`, attempt to normalize it before rejecting it. Apply these mappings: \"flow diagram\" → `Activity Diagram`; \"flowchart\" → `Activity Diagram`; \"sequence\" → `Sequence Diagram`; \"process diagram\" → `Activity Diagram`; \"xml\" → `BPMN`. If the value cannot be normalized, populate `Diagram_Requirements` with `[\"None\"]` and add a note to `Missing_Information` stating the requested type was unrecognized.\n11. **Populate Active_Sections:** Carry forward the confirmed `Active_Sections` list from Step 0. If the list was not confirmed by the user before Step 1, default to all twelve section values. Do not infer or reduce the list — only remove a section if the user explicitly excluded it during the Step 0 agenda confirmation.\n12. **Initialize Clarification_Confirmed:** Always set `Clarification_Confirmed` to `false` in the Step 1 JSON output. Never set it to `true` — that field is set only by the orchestrator in Step 1.5 after the user has explicitly approved the clarified JSON.\n13. **Output only JSON:** Return valid JSON only. Do not add commentary, markdown fences, or any text outside the JSON object.\n", "input_schema": "{\n  \"$schema\": \"https://json-schema.org/draft/2020-12/schema\",\n  \"$id\": \"https://prd-creator.local/schemas/input-router-output.schema.json\",\n  \"title\": \"Input Router Output\",\n  \"description\": \"Structured brief produced by the input-router skill before PRD drafting.\",\n  \"type\": \"object\",\n  \"additionalProperties\": false,\n  \"required\": [\n    \"Delivery_Mode\",\n    \"Output_Artifacts\",\n    \"Active_Sections\",\n    \"Clarification_Confirmed\",\n    \"Domain_Name\",\n    \"Feature_Name\",\n    \"Input_Type\",\n    \"Core_Objective\",\n    \"Problem_Statement\",\n    \"JTBD_Candidates\",\n    \"Target_Users\",\n    \"Epic_Candidates\",\n    \"Primary_User_Story\",\n    \"User_Story_Candidates\",\n    \"User_Flow\",\n    \"Business_Logic_and_Rules\",\n    \"Functional_Requirements\",\n    \"Non_Functional_Requirements\",\n    \"Success_Metrics\",\n    \"UI_UX_Requirements\",\n    \"API_or_Integration_Notes\",\n    \"Diagram_Requirements\",\n    \"Assumptions\",\n    \"Missing_Information\"\n  ],\n  \"properties\": {\n    \"Delivery_Mode\": {\n      \"type\": \"string\",\n      \"description\": \"How the user wants the PRD workflow to run.\",\n      \"enum\": [\n        \"IDE_FULL_PIPELINE\",\n        \"CHAT_TEXT_ONLY\"\n      ]\n    },\n    \"Output_Artifacts\": {\n      \"type\": \"array\",\n      \"description\": \"Expected final outputs for the selected delivery mode.\",\n      \"minItems\": 1,\n      \"uniqueItems\": true,\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\n          \"Text Response\",\n          \"Markdown File\",\n          \"DOCX File\"\n        ]\n      }\n    },\n    \"Active_Sections\": {\n      \"type\": \"array\",\n      \"description\": \"PRD sections the user has confirmed they want included. Sections not listed here are skipped during drafting.\",\n      \"minItems\": 1,\n      \"uniqueItems\": true,\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\n          \"Problem Statement\",\n          \"JTBD\",\n          \"Goals & Success Metrics\",\n          \"Assumptions & Open Questions\",\n          \"Feature Epics & User Stories\",\n          \"Business Rules\",\n          \"Process Diagrams\",\n          \"Use Case Specifications\",\n          \"Functional Requirements\",\n          \"Non-Functional Requirements\",\n          \"UI/UX Specifications\",\n          \"API / Technical Specs\"\n        ]\n      }\n    },\n    \"Clarification_Confirmed\": {\n      \"type\": \"boolean\",\n      \"description\": \"Set to true only after the user has reviewed, corrected, and explicitly approved the structured JSON in the Step 1.5 clarification gate. Never set to true by the model without user confirmation.\"\n    },\n    \"Domain_Name\": {\n      \"type\": \"string\",\n      \"description\": \"Lowercase kebab-case domain slug.\",\n      \"pattern\": \"^[a-z0-9]+(?:-[a-z0-9]+)*$\",\n      \"examples\": [\"loyalty-wallet\", \"payment-gateway\", \"user-profile\"]\n    },\n    \"Feature_Name\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"description\": \"Short human-readable feature name inferred from the input.\"\n    },\n    \"Input_Type\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"JTBDs\",\n        \"Wireframe Notes\",\n        \"Business Requirements\",\n        \"Mixed\"\n      ]\n    },\n    \"Core_Objective\": {\n      \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n    },\n    \"Problem_Statement\": {\n      \"type\": \"object\",\n      \"additionalProperties\": false,\n      \"required\": [\"User_Problem\", \"Business_Problem\"],\n      \"properties\": {\n        \"User_Problem\": {\n          \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n        },\n        \"Business_Problem\": {\n          \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n        }\n      }\n    },\n    \"JTBD_Candidates\": {\n      \"type\": \"array\",\n      \"description\": \"JTBD signals extracted from the input. Product Framing will refine and validate these before drafting.\",\n      \"minItems\": 1,\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\n          \"User_Type\",\n          \"Situation\",\n          \"Motivation\",\n          \"Expected_Outcome\"\n        ],\n        \"properties\": {\n          \"User_Type\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Situation\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Motivation\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Expected_Outcome\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          }\n        }\n      }\n    },\n    \"Target_Users\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Epic_Candidates\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Primary_User_Story\": {\n      \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n    },\n    \"User_Story_Candidates\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\"Title\", \"Actor\", \"Action\", \"Value\"],\n        \"properties\": {\n          \"Title\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Actor\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Action\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Value\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          }\n        }\n      }\n    },\n    \"User_Flow\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Business_Logic_and_Rules\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Functional_Requirements\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Non_Functional_Requirements\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Success_Metrics\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"object\",\n        \"additionalProperties\": false,\n        \"required\": [\"Metric\", \"Baseline\", \"Target\"],\n        \"properties\": {\n          \"Metric\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Baseline\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          },\n          \"Target\": {\n            \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n          }\n        }\n      }\n    },\n    \"UI_UX_Requirements\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"API_or_Integration_Notes\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Diagram_Requirements\": {\n      \"type\": \"array\",\n      \"minItems\": 1,\n      \"uniqueItems\": true,\n      \"items\": {\n        \"type\": \"string\",\n        \"enum\": [\n          \"None\",\n          \"Activity Diagram\",\n          \"Sequence Diagram\",\n          \"BPMN\"\n        ]\n      }\n    },\n    \"Assumptions\": {\n      \"$ref\": \"#/$defs/string_array\"\n    },\n    \"Missing_Information\": {\n      \"$ref\": \"#/$defs/string_array\"\n    }\n  },\n  \"$defs\": {\n    \"non_empty_or_needs_clarification\": {\n      \"type\": \"string\",\n      \"minLength\": 1,\n      \"description\": \"Use [NEEDS_CLARIFICATION] when the source input does not provide this information.\"\n    },\n    \"string_array\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"$ref\": \"#/$defs/non_empty_or_needs_clarification\"\n      }\n    }\n  }\n}\n", "product_framing": "---\nname: product-framing\ndescription: >\n  Defines the Product Framing Pack after the structured requirement JSON is approved.\n  Use this before PRD drafting to turn approved requirements into JTBD statements,\n  Epics, INVEST-standard User Stories, Done when acceptance criteria, and traceability notes.\n---\n\n# Product Framing Pack Generator\n\nYou are the Product Framing agent. Your job is to convert an approved structured requirement brief into a reviewed product backbone before a full PRD is drafted.\n\nThis skill sits between the Input Router and PRD Template Renderer.\n\n---\n\n## Inputs\n\nBefore producing output, confirm you have:\n\n1. The approved JSON brief from Step 1\n2. Delivery mode: `IDE_FULL_PIPELINE` or `CHAT_TEXT_ONLY`\n3. Domain context, if available\n4. Raw requirement text or notes, if available\n5. Standards from:\n   - `knowledge-base/knowledge/jobs-to-be-done/SKILL.md`\n   - `knowledge-base/knowledge/user-story-skill/SKILL.md`\n\nDo not draft the full PRD. Do not export files. This skill produces only the Product Framing Pack.\n\n---\n\n## Rules\n\n- Use the approved JSON as the factual boundary.\n- Treat `JTBD_Candidates`, `Epic_Candidates`, and `User_Story_Candidates` from Step 1 as seeds, not final output.\n- Do not invent business rules, metrics, roles, or edge cases.\n- If a required detail is missing, write `[NEEDS_CLARIFICATION]` and include it in Open Questions.\n- JTBD outputs may be marked `validated` only when user-provided research or domain evidence supports them.\n- If there is no research, mark JTBD outputs as `hypothesized, needs validation`.\n- User Stories must follow INVEST and the standard format:\n\n  ```text\n  As a [specific actor],\n  I want to [action + object],\n  so that [value/reason].\n  ```\n\n- Acceptance Criteria must use `Done when: ...`.\n- Each story must include at least one happy-path AC and one negative/error AC when applicable.\n- Keep UI and implementation details out of the story statement unless they are truly the user outcome.\n- Preserve the user's language.\n- JTBD statements must follow the single-sentence job story format: `When [situation], I want to [motivation], so I can [expected outcome].` Write exactly one sentence per JTBD block. Do not break the job into functional/emotional/social dimensions, tables, or bullets — the single statement is the complete JTBD output.\n- When the input involves multiple distinct actor types or usage contexts, write one JTBD block per actor type. Do not collapse different actors into a single job statement. Split when the situation, motivation, or expected outcome differs meaningfully between actors.\n\n---\n\n## Output Format\n\nReturn Markdown only, with these sections:\n\n```markdown\n# Product Framing Pack - [Feature Name]\n\n## 1. Framing Summary\n\n| Field | Detail |\n|-------|--------|\n| Delivery Mode | [IDE_FULL_PIPELINE / CHAT_TEXT_ONLY] |\n| Output Artifacts | [Text Response / Markdown File / DOCX File] |\n| Domain | [Domain_Name] |\n| Feature | [Feature_Name] |\n| Core Objective | [Core_Objective] |\n| Research Status | [validated / hypothesized, needs validation] |\n\n## 2. Jobs To Be Done\n\n### JTBD-01 - [User Type / Scenario]\n\n**Status:** [validated / hypothesized, needs validation]\n\nWhen [situation], I want to [motivation], so I can [expected outcome].\n\n## 3. Epics & User Stories\n\n### Epic 1 - [Epic Name]\n\n#### US-01 - [Story Name]\n\nAs a [specific actor],\nI want to [action + object],\nso that [value/reason].\n\n**Acceptance Criteria**\n\n- Done when: [happy-path condition]\n- Done when: If [negative/error condition], then [expected handling]\n\n**INVEST Check:** I / N / V / E / S / T\n\n## 4. Traceability\n\n| Story ID | Supports Objective / Rule / Metric | Notes |\n|----------|------------------------------------|-------|\n| US-01 | | |\n\n## 5. Open Questions\n\n- [NEEDS_CLARIFICATION]: [question]\n```\n\nIf no meaningful gaps remain, write `No open questions.` in Section 5.\n", "user_story": "---\nname: user-story-skill\ndescription: >-\n  Systematically create INVEST-standard User Stories with comprehensive Acceptance Criteria. Use when the user mentions \"user story\", \"acceptance criteria\", \"AC\", \"INVEST\", \"story splitting\", \"story hierarchy\", or asks for help writing or reviewing user stories. Also trigger when the user wants to decompose a feature into stories, ensure testable conditions, or align stories with business value. Do NOT use for general requirements gathering, feature specifications without a user-centric focus, or technical task breakdowns that don't follow the user story format.\n---\n\n# SKILL: User Stories & Acceptance Criteria\n\n**Trigger:** Write / draft / review / decompose / check User Stories or AC.\n**Rule:** Read fully before producing any output.\n\n---\n \n## 1 · STORY FORMAT (Non-Negotiable)\n\n```text\nAs a [specific Actor/Persona],\nI want to [Action + Object],\nso that [Value/Reason].\n```\n\n| Part | Guidance |\n|------|----------|\n| **WHO** (Actor) | Specific named persona — never \"user\", \"system\", or \"developer\". Represents how the person works, thinks, feels. One actor per story. |\n| **DOES + WHAT** (Action) | Outcome-focused, implementation-free. No UI elements, no technical prescriptions. Use \"I want to [do X]\" — avoid \"I need a [feature]\". |\n| **WHY** (so that) | Genuine user/business value — never a system requirement. Always present. Ask \"Why?\" 5× to reach true motivation. |\n| **DONE WHEN** (AC) | Testable conditions confirming the story is complete. See Section 3. |\n\n---\n\n## 2 · INVEST (validate before every story)\n\n| | Criterion | Check |\n|-|-----------|-------|\n| **I** | Independent | Stands alone; no dependency on incomplete stories |\n| **N** | Negotiable | Starting point for discussion, not a locked contract |\n| **V** | Valuable | Delivers real value to user or business |\n| **E** | Estimable | Team can size it; if not → clarify or split |\n| **S** | Small | Built + tested within one sprint (≤ 3 dev days) |\n| **T** | Testable | Every AC has a clear pass/fail condition |\n\n---\n\n## 3 · ACCEPTANCE CRITERIA (AC)\n\n**Format:** `Done when: [testable condition — pass/fail verifiable]`\n**Prefer** \"Done when\" over Gherkin (Given/When/Then) — simpler to read and test.\n\n### Must cover all of these\n\n| Type | Rule |\n|------|------|\n| **Happy path** | At least one AC for the main successful flow |\n| **Negative/edge flows** | `Done when: If [X], then [Y]` — at least one error/edge case |\n| **Role-based** | Separate AC per role if multiple actors — only combine if buildable + testable together |\n| **NFRs** | Performance, capacity, security — use exact thresholds, never vague quantifiers |\n| **Design hints** | Framed as preference: `Done when: Report is exportable. (Customer prefers Excel.)` |\n\n### NFR placement\n\n1. In the **WHAT** clause (if it defines system behaviour)\n2. In **AC** (preferred — for performance, capacity, security)\n3. As its **own story** if effort is sprint-sized\n\n### MoSCoW for AC priority\n\n**M**ust / **S**hould / **C**ould / **W**on't — if an AC is Could/Won't, break it into a separate \"Nice to Have\" story rather than mixing priorities.\n\n---\n\n## 4 · ACTOR RULES\n\n- Single actor, single action, single outcome per story\n- If multiple roles share the same functionality: one story + role-based AC **only if** buildable AND testable together; otherwise → separate stories\n\n---\n\n## 5 · WHEN TO SPLIT A STORY\n\nSplit when any of these are true:\n\n- `and` / `or` / `/` in the story statement\n- AC list spans more than one sprint\n- Multiple actors need separate build + test paths\n- NFR effort is significant enough to own a sprint slot\n- Story points = XL\n\n**Strategies:** Part 1/2/3 · Split by actor · Split by flow (positive vs. edge) · Split by CRUD scope (Create / Edit / Delete)\n\n---\n\n## 6 · HIERARCHY\n\n```text\nEpic → Feature → User Story\n```\n\n- Stories must connect to a Feature; Features to an Epic\n- Each story's \"Why\" must be **self-contained** — repeat Epic context in the story; devs work from stories, not Epics\n\n---\n\n## 7 · SPECIAL CASES\n\n**API stories**\n\n```text\nAs the [API name], I want to include [data] in the response,\nso that [consumer] can [outcome].\n```\n\nAlso define: endpoints, who pulls/publishes data, how data is used.\n\n**Reporting stories:** WHO = person who uses the report · WHAT/AC = fields, data types · WHY = business reason\n\n**Non-collocated teams:** Add more AC detail; supplement with SRD or mockup; link all artifacts explicitly in the story.\n\n**Mockups:** Each mockup section → one or more stories. Developed collaboratively. Suggestion tool only — not a locked design.\n\n---\n\n## 8 · ANTI-PATTERNS\n\n| ❌ Anti-Pattern | Problem | ✅ Fix |\n|-----------------|---------|--------|\n| \"I need a [feature]\" | Leads to design requirements | Use \"I want to [action]\" |\n| \"and/or/\" in statement | Multiple outcomes | Split story |\n| Multiple actors, one story | Can't build+test together | Separate stories |\n| Prescribes UI/technical solution | Limits team creativity | Describe user goal only |\n| Generic actor (\"user\", \"system\", \"developer\") | No empathy or end-user value | Use specific persona |\n| AC list too long | Spans multiple sprints | Split story |\n| Vague NFR (\"more than X\") | Untestable | Use exact threshold |\n| Developer as actor | No end-user value | Reframe as technical task |\n| Missing \"so that\" | Team doesn't know the why | Always include value clause |\n\n---\n\n## 9 · OUTPUT FORMAT\n\n```text\n## User Story\n**Title:** [Short descriptive title]\n\nAs a [Actor],\nI want to [Action + Object],\nso that [Value].\n\n## Acceptance Criteria\nDone when: [positive condition]\nDone when: [positive condition]\nDone when: If [X], then [Y]  ← negative/edge case\nDone when: [NFR with exact threshold]\n\n## Notes (optional)\n[Design suggestion — framed as preference, not requirement]\n[Links: mockup / SRD / related story ID]\n\n## INVEST\n[ ] I  [ ] N  [ ] V  [ ] E  [ ] S  [ ] T\n```\n\n---\n\n## 10 · PRE-OUTPUT SELF-CHECK\n\nFix any failure before outputting.\n\n- [ ] Actor is specific — not \"user\", \"system\", or \"developer\"\n- [ ] Action is outcome-focused — no UI/technical prescriptions\n- [ ] \"so that\" is present with genuine user/business value\n- [ ] No `and` / `or` / `/` in WHO/DOES/WHAT\n- [ ] Every AC has a clear pass/fail condition\n- [ ] Happy path + at least one negative/edge case covered\n- [ ] All AC completable within one sprint\n- [ ] All 6 INVEST criteria pass\n- [ ] NFRs use exact thresholds — no vague quantifiers\n", "template_skill": "---\nname: prd-template-renderer\ndescription: >\n  Render a full PRD from an approved structured brief and domain context. Use when the\n  orchestrator has already collected and approved the feature JSON and needs the standard PRD\n  filled end-to-end without re-interviewing the user.\n---\n\n# PRD Template Renderer\n\nProduce a complete PRD from an approved structured brief, then fill `resources/prd-template.md`.\nScope: PRD drafting only. Review and export are separate steps in the pipeline.\n\n---\n\n## Phase 1 - Inputs\n\nBefore drafting, confirm you have:\n\n1. The approved JSON brief from Step 1\n2. The approved Product Framing Pack from Step 2, including JTBD statements, Epics, User Stories, Acceptance Criteria, and open questions\n3. Domain context from `domain-knowledge/[Domain_Name]/rules.md` when running in `IDE_FULL_PIPELINE`\n4. Relevant domain history from prior PRDs or inputs, if present\n5. Standards from:\n   - `knowledge-base/knowledge/jobs-to-be-done/SKILL.md`\n   - `knowledge-base/knowledge/user-story-skill/SKILL.md`\n\nDo not re-interview the user if the orchestrator already completed the JSON and Product Framing approval steps. Only stop and request clarification if a critical field remains blocked after Step 2 approval.\nIf JTBD research is not provided in the approved brief, Product Framing Pack, or domain context, label JTBD outputs as hypothesized and needing validation.\n\n---\n\n## Phase 2 - Draft\n\nLoad `resources/prd-template.md`. Fill every section listed in `Active_Sections` from the approved JSON. For any section **not** in `Active_Sections`, replace its entire content with `_Section excluded at user's request._` and keep the heading so the document structure stays intact. Use `TBD` only when the approved brief still contains an unresolved gap.\n\n**Rules:**\n\n- **Active_Sections gate:** Before writing any section, check whether its name appears in `Active_Sections`. The mapping between JSON values and template headings is: `\"Problem Statement\"` → 2.1, `\"JTBD\"` → 2.2, `\"Goals & Success Metrics\"` → 2.3, `\"Assumptions & Open Questions\"` → 2.4, `\"Feature Epics & User Stories\"` → 3.1, `\"Business Rules\"` → 3.2, `\"Process Diagrams\"` → 3.3, `\"Use Case Specifications\"` → 3.4, `\"Functional Requirements\"` → FR table in 3.5, `\"Non-Functional Requirements\"` → NFR table in 3.5, `\"UI/UX Specifications\"` → 3.6, `\"API / Technical Specs\"` → 3.7.\n- Acceptance Criteria must follow the `Done when` standard from `user-story-skill`.\n- Apply JTBD and user-story standards strictly; do not shortcut them to save tokens.\n- Use the approved Product Framing Pack as the source of truth for Section 2.2 and Section 3.1.\n- If `Epic_Candidates` or `User_Story_Candidates` are present in the brief, use them only as seeds already resolved by the approved Product Framing Pack.\n- Surface `Assumptions`, `Missing_Information`, and unresolved `[NEEDS_CLARIFICATION]` items in Section 2.4 Assumptions & Open Questions.\n- Functional Requirements must include a `High / Medium / Low` priority.\n- API details not provided -> mark `[DEV TO COMPLETE]`.\n- Use Case tables must include Actor, Precondition, Postcondition, Main Flow, Alternative Flow, and Exception Flow.\n- Section 3.3 must include only the diagram types explicitly approved by the user.\n- Preserve the selected `Delivery_Mode`; drafting does not decide whether to save files or export DOCX.\n\n---\n\n## Phase 3 - Section 3.3 Diagrams\n\n**Critical rule:** Only generate diagrams for the types explicitly approved by the user in Step 0 or Step 1. Do not substitute plain text or Mermaid when BPMN, Activity Diagram, or Sequence Diagram is requested.\n\nWhen Section 3.3 needs one or more diagrams, **delegate entirely to `knowledge-base/prd-template/diagram-writer/SKILL.md`** using its Input Contract. Do not generate diagram code inline here.\n\nPass to `diagram-writer`:\n- The diagram type(s) from `Diagram_Requirements` in the approved JSON\n- The feature name and description\n- The actors and system components involved\n- The happy path steps from `User_Flow`\n- Key edge cases and error scenarios from `Business_Logic_and_Rules`\n\nAfter `diagram-writer` returns the output, embed it verbatim in Section 3.3 of the PRD.\n\n---\n\n## Phase 4 - Versioning\n\nDo not pre-fill Version History by default; the PM owns it. Keep the table format empty unless the workflow explicitly requests a starting row. If a starting row is explicitly requested, use `0.1`, today's date, `PRD pipeline`, and `Initial draft`.\n\n---\n\n## Quality Checklist\n\n- All template section headers are present.\n- Sections absent from `Active_Sections` contain only `_Section excluded at user's request._`.\n- Section 3.3 contains only the diagrams explicitly requested by the user.\n- No blank sections remain; use `TBD` when information is still pending.\n- The language matches the user's language.\n", "prd_template": "# [Product Name] - [Feature Name] PRD\n\n---\n\n## 1. Document Info\n\n### 1.1 Version History\n\n<!-- PM fills this section. Do not generate. -->\n\n| Version | Last Updated | Modified By | Change Summary |\n|---------|--------------|-------------|----------------|\n\n### 1.2 References\n\n<!-- PM fills this section. Do not generate. -->\n\n| Document | Link | PIC |\n|----------|------|-----|\n\n---\n\n## 2. Feature Overview\n\n### 2.1 Problem Statement / Context\n\n**Context**\n\n- Current behavior:\n- Existing gap:\n- Business motivation:\n\n**Problem Statement**\n\n- **User problem:**\n- **Business problem:**\n\n---\n\n### 2.2 Job to Be Done (JTBD)\n\n<!--\n  One block per distinct actor type, role, or usage context — no upper limit.\n  Write one JTBD block per actor when their situation, motivation, or expected outcome differs.\n  Do not collapse different actors into a single statement.\n  Each JTBD is exactly one job story sentence — no dimension tables or bullets.\n  Skip this section entirely only if \"JTBD\" was excluded from Active_Sections.\n-->\n\n**JTBD - [User Type / Scenario]**\n\nWhen [situation], I want to [motivation], so I can [expected outcome].\n\n---\n\n### 2.3 Goals & Success Metrics\n\n**Goals:**\n\n1.\n\n**Success Metrics:**\n\n| Metric | Baseline | Target |\n|--------|----------|--------|\n\n---\n\n### 2.4 Assumptions & Open Questions\n\n**Assumptions**\n\n| ID | Assumption | Source / Confidence |\n|----|------------|---------------------|\n\n**Open Questions**\n\n| ID | Question / Missing Information | Owner / Next Step |\n|----|--------------------------------|-------------------|\n\n---\n\n## 3. Feature Specifications\n\n### 3.1 Feature Epics & User Stories\n\n<!--\n  Structure all features using an Epic > User Story > Acceptance Criteria hierarchy.\n  Follow the `user-story-skill` rules STRICTLY:\n  - Epic groups related User Stories.\n  - User Story format: As a [persona], I want to [action], so that [value/reason].\n  - Acceptance Criteria: Format as `Done when: [positive/negative condition]`.\n\n  Format example:\n  **Epic 1: [Epic Name]**\n  - **US-01 - [Story Name]**\n    - **As a** [user role],\n    - **I want to** [action],\n    - **so that** [benefit].\n    - **Acceptance Criteria**\n      - Done when: [condition 1]\n      - Done when: If [error], then [handling]\n-->\n\n### 3.2 Business Rules\n\n<!--\n  List every rule that constrains eligibility, pricing, permissions, limits, validation,\n  sequencing, status transitions, timeout behavior, retry behavior, and exception handling.\n  If the feature includes calculations, describe each calculation rule explicitly.\n-->\n\n- Rule 1:\n\n### 3.3 Process Diagrams\n\n<!-- Use the diagram-writer skill to generate diagrams for this feature.\n     Available types: BPMN (bpmn.io XML), Activity Diagram (PlantUML), Sequence Diagram (PlantUML). -->\n\n---\n\n### 3.4 Use Case Specifications\n\n<!--\n  One UC block per User Story (UC-01 mirrors US-01, UC-02 mirrors US-02, and so on).\n\n  For EACH UC, exhaustively enumerate before writing:\n\n  ALTERNATIVE FLOWS - every valid deviation from the happy path:\n    - User cancels or dismisses at any step\n    - User chooses a different option or path\n    - User skips an optional step\n    - User modifies input before confirming\n    - System triggers a retry or pagination\n    -> Each distinct trigger = one row (A1, A2, A3, and so on). Do not stop at A1.\n\n  EXCEPTION FLOWS - every error the system must handle:\n    - Authentication failure or session expiry\n    - Network timeout or service unavailable\n    - Invalid or missing input\n    - Server error (5xx)\n    - Empty or no-result response\n    - Rate limiting or quota exceeded\n    - Concurrent modification conflict\n    -> Each distinct error = one row (E1, E2, E3, and so on). Do not stop at E1.\n\n  CRITICAL MANDATE: YOU MUST WRITE OUT ALL NECESSARY USE CASES FOR EVERY USER STORY.\n  A SINGLE USER STORY MAY REQUIRE MULTIPLE USE CASES TO COVER ALL FUNCTIONALITIES.\n-->\n\n**UC-01 - [Use Case Name]**\n\n| Field             | Detail |\n|-------------------|--------|\n| **Use Case ID**   |        |\n| **Use Case Name** |        |\n| **Actor**         |        |\n| **Precondition**  |        |\n| **Postcondition** |        |\n\n**Main Flow (Happy Path):**\n\n| Step | Actor | Action | System Response |\n|------|-------|--------|-----------------|\n\n**Alternative Flows:**\n\n| Step | Trigger | Actor Action | System Response |\n|------|---------|--------------|-----------------|\n\n**Exception Flows:**\n\n| Step | Error Condition | System Handling |\n|------|-----------------|-----------------|\n\n<!-- Repeat the full UC block above for UC-02, UC-03, and so on until coverage is complete. -->\n\n---\n\n### 3.5 Feature Requirements\n\n#### Functional Requirements\n\n<!--\n  Derive from all User Stories and Acceptance Criteria. No fixed upper limit.\n-->\n\n| ID  | Requirement | Priority |\n|-----|-------------|----------|\n\n#### Non-Functional Requirements\n\n| ID   | Requirement | Target |\n|------|-------------|--------|\n\n---\n\n### 3.6 UI/UX Specifications\n\n| Wireframe / UI Element | Description | Validation / Rule |\n|------------------------|-------------|-------------------|\n\n---\n\n### 3.7 API / Technical Specs\n\n| Endpoint | Method | Request Payload | Response | Error Handling |\n|----------|--------|-----------------|----------|----------------|\n\n---\n\n*Document generated using the PRD template renderer.*\n", "diagram_writer": "---\nname: diagram-writer\ndescription: >\n  Draw process diagrams on demand. Trigger when the user asks to \"draw\", \"create\", or\n  \"generate\" a diagram, or mentions BPMN, activity diagram, sequence diagram, flow diagram,\n  or \"draw a diagram\". Also trigger when a PRD session reaches section 3.3 and diagrams are needed.\n---\n\n# Diagram Writer Skill\n\nDraw diagram code based on user selection. If the feature context is already known\n(for example from a PRD session), skip context questions and go straight to drawing.\nWhen called from the PRD pipeline, generate every requested diagram type and return code\nblocks only, with no offer or follow-up text.\n\n---\n\n## Input Contract\n\nWhen called by the PRD pipeline, the caller provides:\n\n| Field | Type | Notes |\n|-------|------|-------|\n| `diagram_type` | `BPMN` / `Activity Diagram` / `Sequence Diagram` | One value per requested diagram. |\n| `feature_name` | string | Feature or process name. |\n| `actors` | string[] | People, roles, or lanes involved. |\n| `components` | string[] | System components or services, especially for sequence diagrams. |\n| `happy_path` | string[] | Ordered successful-flow steps. |\n| `edge_cases` | string[] | Alternative, failure, timeout, validation, or permission scenarios. |\n\nIf `diagram_type` is provided by the caller, do not ask the user to choose again.\n\n---\n\n## Workflow\n\n### Step 1 - Select diagram type (if not already specified)\n\nIf `diagram_type` or `Diagram_Requirements` is already provided by the orchestrator, skip this question and proceed. Otherwise, ask the user to choose one:\n\n- **BPMN** - who does what across actors and systems\n- **Activity Diagram** - branching logic with happy and error paths\n- **Sequence Diagram** - message exchange between system components\n\nPresent the choice briefly.\n\n### Step 2 - Gather context (if not already known)\n\nAsk only what is still missing:\n\n- What feature or process should the diagram cover?\n- Who are the actors or system components involved?\n- What is the happy path? Are there any key decisions or error cases?\n\n### Step 3 - Draw\n\nGenerate the diagram using the rules below. Output the code block immediately with no preamble.\nIf this is a standalone diagram request, you may offer to draw the other diagram types for\nthe same feature after the code block. If this is a PRD pipeline call, output only the\nrequested code block or blocks.\n\n---\n\n## BPMN - bpmn.io XML\n\nOutput a ` ```xml ` fenced block containing valid BPMN 2.0 XML.\n\n**Required structure:**\n`<collaboration>` pool -> `<process>` with `<laneSet>` -> one `<lane>` per actor ->\nall flow elements with `<flowNodeRef>` -> `<sequenceFlow>` for every connection ->\n`<bpmndi:BPMNDiagram>` with `<dc:Bounds>` per shape and `<di:waypoint>` per edge.\n\n**Lanes:** minimum User + App/Frontend + Backend Service. Add more if needed.\n\n**Standard sizes:**\n\n- `task`: 120x80 px\n- `startEvent` / `endEvent`: 36x36 px\n- `exclusiveGateway`: 50x50 px\n- Pool label column: 30 px (lanes start at pool.x + 30, lane.width = pool.width - 30)\n- Lane heights: User 120-130 px, App 200-220 px, each backend lane >= 100 px\n\n**Layout rules:**\n\n- Align tasks that communicate across lanes vertically to keep edges clean.\n- Layout grid:\n  - Pool origin: `x=160`, `y=80`.\n  - Lane origin: `x=190`, `y=pool.y + cumulative lane heights`.\n  - First task in a lane: `x=240`, `y=lane.y + (lane.height - 80) / 2`.\n  - Horizontal stride between tasks: `150 px`.\n  - Edge waypoints: source right midpoint -> target left midpoint.\n  - Increase pool width before compressing tasks; do not overlap shapes.\n- Encode all XML special characters in attributes: `&` -> `&amp;`, `<` -> `&lt;`, `>` -> `&gt;`, `\"` -> `&quot;`, `'` -> `&apos;`.\n\n**Skeleton:**\n\n```xml\n<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<definitions xmlns=\"http://www.omg.org/spec/BPMN/20100524/MODEL\"\n             xmlns:bpmndi=\"http://www.omg.org/spec/BPMN/20100524/DI\"\n             xmlns:dc=\"http://www.omg.org/spec/DD/20100524/DC\"\n             xmlns:di=\"http://www.omg.org/spec/DD/20100524/DI\"\n             id=\"Definitions_1\" targetNamespace=\"http://bpmn.io/schema/bpmn\">\n  <collaboration id=\"Collaboration_1\">\n    <participant id=\"Pool_1\" name=\"[Feature] Process\" processRef=\"Process_1\" />\n  <\/collaboration>\n  <process id=\"Process_1\" isExecutable=\"false\">\n    <laneSet id=\"LaneSet_1\">\n      <lane id=\"Lane_User\" name=\"User\">\n        <flowNodeRef>StartEvent_1<\/flowNodeRef>\n        <!-- add flowNodeRefs for all elements in this lane -->\n      <\/lane>\n      <lane id=\"Lane_App\" name=\"App / Frontend\">\n        <!-- flowNodeRefs -->\n      <\/lane>\n      <lane id=\"Lane_Backend\" name=\"Backend Service\">\n        <!-- flowNodeRefs -->\n      <\/lane>\n    <\/laneSet>\n    <!-- declare all elements: startEvent, task, exclusiveGateway, endEvent -->\n    <!-- declare all sequenceFlows -->\n  <\/process>\n  <bpmndi:BPMNDiagram id=\"BPMNDiagram_1\">\n    <bpmndi:BPMNPlane id=\"BPMNPlane_1\" bpmnElement=\"Collaboration_1\">\n      <!-- BPMNShape for pool, each lane, each element (dc:Bounds) -->\n      <!-- BPMNEdge for each flow (di:waypoint) -->\n    <\/bpmndi:BPMNPlane>\n  <\/bpmndi:BPMNDiagram>\n<\/definitions>\n```\n\n---\n\n## Activity Diagram - PlantUML\n\nOutput a ` ```plantuml ` fenced block.\n\n**Rules:**\n\n- Must include: happy path + at least 1 alternative branch + at least 1 error or exception branch.\n- Step labels must stay under 8 words. No swimlanes.\n- Use `if / then / else / endif`. Nested conditions are allowed.\n\n**Skeleton:**\n\n```plantuml\n@startuml\nskinparam ActivityBackgroundColor #f5f5f5\nskinparam ActivityBorderColor #333333\nskinparam ArrowColor #555555\nskinparam ActivityDiamondBackgroundColor #fff3cd\n\ntitle [Feature Name] - Activity Flow\n\nstart\n:[Entry point / trigger];\nif (Condition?) then (yes)\n  :[Happy path step 1];\n  :[Happy path step 2];\nelse (no)\n  :[Alternative or error handling];\n  stop\nendif\n:[Final success state];\nstop\n@enduml\n```\n\n---\n\n## Sequence Diagram - PlantUML\n\nOutput a ` ```plantuml ` fenced block.\n\n**Rules:**\n\n- `->` for requests (solid), `-->` for responses (dashed).\n- Wrap success versus error paths in `alt / else / end`.\n- Every external service must be named as a participant (Auth, Analytics, DB, and so on).\n- Annotate every arrow with an HTTP method + endpoint or an action name.\n\n**Skeleton:**\n\n```plantuml\n@startuml\nskinparam SequenceArrowThickness 1.5\nskinparam ParticipantBackgroundColor #f0f4ff\nskinparam ParticipantBorderColor #3355aa\n\ntitle [Feature Name] - Sequence\n\nactor User\nparticipant \"[Frontend / App]\" as App\nparticipant \"[Backend Service]\" as Service\nparticipant \"[External / DB]\" as Ext\n\nUser -> App: [User action]\nApp -> Service: [API request]\n\nalt Success\n  Service -> Ext: [Data fetch]\n  Ext --> Service: [Data response]\n  Service --> App: 200 OK { payload }\n  App --> User: [UI feedback]\nelse Error\n  Service --> App: 4xx / 5xx\n  App --> User: [Error / silent failure]\nend\n@enduml\n```\n", "reviewer": "---\nname: prd-reviewer\ndescription: Acts as a strict QA Product Manager. Reviews drafted PRDs for logical gaps, missing edge cases, and MECE principles. Outputs structured reviewer notes that the orchestrator inserts inline into the PRD draft.\n---\n\n# PRD Reviewer & Debater\n\nYou are a Senior Product Manager acting as the PRD Reviewer. Your job is to read the draft PRD, identify meaningful logic gaps, and return a **structured list of reviewer notes** that the orchestrator will insert inline into the PRD file. Do not rewrite the PRD. Do not insert notes yourself.\n\n---\n\n## Execution Steps\n\n1. **Read the full draft.** Cross-check user stories, acceptance criteria, business rules, use cases, and requirements end-to-end.\n\n2. **Evaluate on these dimensions:**\n   - Missing edge cases: timeout, connectivity loss, insufficient balance, unauthorized access, concurrent modification, empty-state handling.\n   - JTBD alignment: does the stated JTBD actually support the problem statement?\n   - AC completeness: does every `Done when` condition have a clear pass/fail test? Is the happy path covered? Is at least one negative/error path covered per story?\n   - Non-functional requirements: are thresholds measurable and specific (no vague language like \"fast\" or \"reliable\")?\n   - Use Case coverage: does each UC include main flow, at least two alternative flows, and at least two exception flows?\n\n3. **Skip trivial observations.** Only flag meaningful gaps that would cause real delivery risk or QA failure if missed.\n\n4. **Limit each pass.** Return at most 10 notes per pass, ranked by delivery risk. Prefer fewer high-signal notes over exhaustive low-value commentary.\n\n5. **Repeat review behavior.** If invoked for a second or third pass after edits, only flag issues that were introduced by the latest edit or remain unresolved from previous reviewer notes. Do not re-list resolved notes.\n\n6. **Output format:** Return a JSON array only. No prose before or after the array. No markdown fences.\n\n---\n\n## Output Contract\n\nReturn a JSON array. Each element is one reviewer note with this exact shape:\n\n```\n[\n  {\n    \"note_id\": \"RN-01\",\n    \"section\": \"3.1 - US-02 Acceptance Criteria\",\n    \"risk\": \"No error AC covers the case where the user's session expires mid-flow.\",\n    \"fix_a\": \"Add: Done when: If the session expires during the flow, the user is redirected to login and returned to the same step after re-authentication.\",\n    \"fix_b\": \"Add: Done when: If the session expires, the system saves draft state for 30 minutes and prompts the user to log in again.\"\n  }\n]\n```\n\n**Field rules:**\n\n- `note_id`: sequential string, `RN-01`, `RN-02`, and so on.\n- `section`: the exact section heading or story title from the PRD where the issue was found.\n- `risk`: one sentence describing the delivery or QA risk if this gap is not resolved.\n- `fix_a`: a concrete, ready-to-paste fix option. Use the same format as the surrounding PRD text.\n- `fix_b`: an alternative fix that takes a different approach from `fix_a`.\n\n**If no meaningful gaps are found,** return an empty array: `[]`\n"}</script>
+
+<script>
+"use strict";
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+  en: {
+    tagline: "human-approved PRDs, no IDE required",
+    settings: "Settings", save: "Save & close",
+    apiKey: "Anthropic API key", apiKeyHint: "Stored only in this browser (localStorage). Calls go directly from your browser to api.anthropic.com — no other server is involved.",
+    model: "Model", loadModels: "Load my models", maxTokens: "Max output tokens",
+    ghToken: "GitHub token (optional)", ghRepo: "GitHub repo to save PRDs (optional)", ghBranch: "Branch",
+    ghHint: "With a repo configured you can save finished PRDs to domain-knowledge/<domain>/PRDs/ via the GitHub API. The token needs the “Contents: read & write” permission on that repo.",
+    ghTest: "Test connection",
+    freshPrompts: "Fetch latest pipeline prompts from GitHub at startup",
+    freshPromptsHint: "When off, the prompt versions embedded in this file are used (works offline).",
+    stepNames: ["0. Scope", "1. Brief", "1.5 Clarify", "2. Framing", "3. Draft", "4. Review", "5. Approve", "6. Export"],
+    s0Title: "Step 0 — Describe the feature & choose the scope",
+    s0Sub: "Write your raw requirements in any language. The pipeline keeps your language throughout.",
+    rawLabel: "Raw requirements / feature idea",
+    rawPh: "Example: Create a Group Lucky Money feature for Lunar New Year. Target users: wallet users in group chats. Flow: open from home screen, enter greeting and total amount, choose random split, send, share claim link… Edge cases: 11th user sees “all envelopes claimed”; insufficient balance blocks sending.",
+    diagramsLabel: "Diagrams to include",
+    sectionsLabel: "PRD sections (untick anything you don't need)",
+    startBtn: "Start the pipeline",
+    needKey: "Add your Anthropic API key in Settings first.",
+    needRaw: "Please describe the feature first.",
+    s1Title: "Step 1 — Structured brief",
+    s1Sub: "The Input Router turns your notes into a structured JSON brief. Review it, edit if needed, then approve.",
+    working: "Working", validationOk: "Schema check: OK", validationFail: "Schema check failed",
+    approve: "Approve", regenerate: "Regenerate with feedback", editJson: "Edit JSON",
+    feedbackPh: "What should be different? (optional feedback)",
+    s15Title: "Step 1.5 — Clarification gate",
+    s15Sub: "Answer what you can. Anything left unanswered stays as TBD in the PRD — nothing is invented.",
+    noGaps: "The brief has no open gaps. Confirm to continue.",
+    answersPh: "Answer the questions here (any format, any language)…",
+    submitAnswers: "Submit answers", keepTbd: "Skip — keep gaps as TBD", confirmBrief: "Confirm brief",
+    s2Title: "Step 2 — Product framing (JTBD + user stories)",
+    s2Sub: "Single-sentence job stories, INVEST user stories, and “Done when” acceptance criteria.",
+    requestChanges: "Request changes",
+    s3Title: "Step 3 — Drafting the PRD",
+    s3Sub: "Filling the standard template. Excluded sections are skipped.",
+    genDiagram: "Generating diagram",
+    s4Title: "Step 4 — Independent QA review",
+    s4Sub: "A reviewer agent hunts for logic gaps and inserts warning notes into the draft.",
+    notesFound: "reviewer note(s) inserted", noNotes: "QA pass found no gaps",
+    s5Title: "Step 5 — Final approval",
+    s5Sub: "Read the reviewed draft. Approve it, or request changes (substantive changes are re-reviewed).",
+    cosmetic: "Apply as cosmetic edit (skip re-review)", substantive: "Apply & re-review",
+    approveFinal: "Approve this PRD",
+    loopCap: "3 review passes reached. Approving now keeps any remaining notes in the document history.",
+    s6Title: "Step 6 — Export",
+    s6Sub: "Your PRD is approved. Save or download it.",
+    keepNotes: "Keep reviewer notes in the export",
+    dlMd: "Download Markdown", dlDoc: "Download Word (.doc)", copyMd: "Copy Markdown", printBtn: "Print / PDF",
+    ghSave: "Save to GitHub", ghSaving: "Saving", ghSaved: "Saved:", ghNoCfg: "Configure a GitHub repo in Settings to enable saving.",
+    alsoInputs: "Also save the brief + framing pack",
+    retry: "Retry", copied: "Copied!",
+    tokensUsed: "tokens", callFailed: "The call failed",
+    promptsFresh: "Prompts refreshed from GitHub", promptsEmbedded: "Using embedded prompts",
+    startOver: "Start a new PRD",
+    truncated: "The response was cut off at the output-token limit. Raise “Max output tokens” in Settings (or exclude some sections) and retry.",
+    lowerMaxTok: "this model has a lower output limit — lower “Max output tokens” in Settings",
+    capConfirm: "3 review passes already ran. Run one more review pass anyway?",
+    reviewerInvalid: "The reviewer did not return valid JSON after a retry. Its raw output is shown above — read it before approving.",
+    bpmnWarn: "⚠️ BPMN is token-heavy and layout coordinates are estimated, so the result will be basic. Choose it only if your tools require BPMN 2.0 XML."
+  },
+  vi: {
+    tagline: "PRD chuẩn, không cần IDE",
+    settings: "Cài đặt", save: "Lưu & đóng",
+    apiKey: "Anthropic API key", apiKeyHint: "Chỉ lưu trong trình duyệt này (localStorage). Mọi lệnh gọi đi thẳng từ trình duyệt của bạn tới api.anthropic.com — không qua máy chủ nào khác.",
+    model: "Model", loadModels: "Tải danh sách model", maxTokens: "Max output tokens",
+    ghToken: "GitHub token (tùy chọn)", ghRepo: "Repo GitHub để lưu PRD (tùy chọn)", ghBranch: "Branch",
+    ghHint: "Khi cấu hình repo, bạn có thể lưu PRD hoàn chỉnh vào domain-knowledge/<domain>/PRDs/ qua GitHub API. Token cần quyền “Contents: read & write” trên repo đó.",
+    ghTest: "Kiểm tra kết nối",
+    freshPrompts: "Tải prompt pipeline mới nhất từ GitHub khi khởi động",
+    freshPromptsHint: "Khi tắt, dùng bản prompt nhúng sẵn trong file này (chạy được offline).",
+    stepNames: ["0. Phạm vi", "1. Brief", "1.5 Làm rõ", "2. Framing", "3. Bản thảo", "4. Review", "5. Duyệt", "6. Xuất"],
+    s0Title: "Bước 0 — Mô tả tính năng & chọn phạm vi",
+    s0Sub: "Viết yêu cầu thô bằng bất kỳ ngôn ngữ nào. Pipeline giữ nguyên ngôn ngữ của bạn xuyên suốt.",
+    rawLabel: "Yêu cầu thô / ý tưởng tính năng",
+    rawPh: "Ví dụ: Tạo tính năng Lì Xì Nhóm cho Tết. Người dùng: user ví trong group chat. Flow: mở từ màn hình chính, nhập lời chúc và tổng tiền, chia ngẫu nhiên, gửi, chia sẻ link nhận… Edge case: người thứ 11 thấy “hết bao lì xì”; không đủ số dư thì chặn gửi.",
+    diagramsLabel: "Sơ đồ cần có",
+    sectionsLabel: "Các section của PRD (bỏ tick nếu không cần)",
+    startBtn: "Bắt đầu pipeline",
+    needKey: "Hãy nhập Anthropic API key trong Cài đặt trước.",
+    needRaw: "Hãy mô tả tính năng trước đã.",
+    s1Title: "Bước 1 — Brief có cấu trúc",
+    s1Sub: "Input Router chuyển ghi chú của bạn thành JSON brief. Xem lại, sửa nếu cần, rồi duyệt.",
+    working: "Đang chạy", validationOk: "Kiểm tra schema: OK", validationFail: "Schema không hợp lệ",
+    approve: "Duyệt", regenerate: "Tạo lại theo góp ý", editJson: "Sửa JSON",
+    feedbackPh: "Bạn muốn khác đi ở điểm nào? (góp ý tùy chọn)",
+    s15Title: "Bước 1.5 — Cổng làm rõ",
+    s15Sub: "Trả lời những gì bạn biết. Phần chưa trả lời sẽ giữ là TBD trong PRD — không bịa thông tin.",
+    noGaps: "Brief không còn điểm mờ. Xác nhận để tiếp tục.",
+    answersPh: "Trả lời các câu hỏi ở đây (tùy ý, ngôn ngữ nào cũng được)…",
+    submitAnswers: "Gửi câu trả lời", keepTbd: "Bỏ qua — giữ TBD", confirmBrief: "Xác nhận brief",
+    s2Title: "Bước 2 — Product framing (JTBD + user story)",
+    s2Sub: "Job story một câu, user story chuẩn INVEST, và acceptance criteria dạng “Done when”.",
+    requestChanges: "Yêu cầu chỉnh sửa",
+    s3Title: "Bước 3 — Viết bản thảo PRD",
+    s3Sub: "Điền theo template chuẩn. Section bị loại sẽ được bỏ qua.",
+    genDiagram: "Đang vẽ sơ đồ",
+    s4Title: "Bước 4 — QA review độc lập",
+    s4Sub: "Reviewer săn lỗ hổng logic và chèn ghi chú cảnh báo vào bản thảo.",
+    notesFound: "ghi chú reviewer đã chèn", noNotes: "QA không tìm thấy lỗ hổng",
+    s5Title: "Bước 5 — Duyệt cuối",
+    s5Sub: "Đọc bản thảo đã review. Duyệt, hoặc yêu cầu sửa (sửa lớn sẽ được review lại).",
+    cosmetic: "Sửa nhỏ (không review lại)", substantive: "Sửa & review lại",
+    approveFinal: "Duyệt PRD này",
+    loopCap: "Đã đủ 3 vòng review. Duyệt bây giờ sẽ giữ các ghi chú còn lại trong lịch sử.",
+    s6Title: "Bước 6 — Xuất file",
+    s6Sub: "PRD đã được duyệt. Lưu hoặc tải về.",
+    keepNotes: "Giữ ghi chú reviewer trong file xuất",
+    dlMd: "Tải Markdown", dlDoc: "Tải Word (.doc)", copyMd: "Copy Markdown", printBtn: "In / PDF",
+    ghSave: "Lưu lên GitHub", ghSaving: "Đang lưu", ghSaved: "Đã lưu:", ghNoCfg: "Cấu hình repo GitHub trong Cài đặt để bật tính năng lưu.",
+    alsoInputs: "Lưu kèm brief + framing pack",
+    retry: "Thử lại", copied: "Đã copy!",
+    tokensUsed: "token", callFailed: "Gọi API thất bại",
+    promptsFresh: "Đã tải prompt mới từ GitHub", promptsEmbedded: "Đang dùng prompt nhúng sẵn",
+    startOver: "Tạo PRD mới",
+    truncated: "Câu trả lời bị cắt do chạm giới hạn output token. Tăng “Max output tokens” trong Cài đặt (hoặc bỏ bớt section) rồi thử lại.",
+    lowerMaxTok: "model này có giới hạn output thấp hơn — hãy giảm “Max output tokens” trong Cài đặt",
+    capConfirm: "Đã chạy đủ 3 vòng review. Vẫn chạy thêm một vòng review nữa?",
+    reviewerInvalid: "Reviewer không trả về JSON hợp lệ sau khi thử lại. Output thô hiển thị ở trên — hãy đọc trước khi duyệt.",
+    bpmnWarn: "⚠️ BPMN rất tốn token và tọa độ layout phải ước lượng nên kết quả sẽ cơ bản. Chỉ chọn nếu công cụ của bạn bắt buộc dùng BPMN 2.0 XML."
+  }
+};
+let LANG = (localStorage.getItem("prdw.lang") || (navigator.language || "en")).slice(0, 2) === "vi" ? "vi" : "en";
+const t = (k) => (I18N[LANG][k] !== undefined ? I18N[LANG][k] : I18N.en[k] || k);
+
+/* ---------------- constants ---------------- */
+const ALL_SECTIONS = [
+  "Problem Statement", "JTBD", "Goals & Success Metrics", "Assumptions & Open Questions",
+  "Feature Epics & User Stories", "Business Rules", "Process Diagrams", "Use Case Specifications",
+  "Functional Requirements", "Non-Functional Requirements", "UI/UX Specifications", "API / Technical Specs"
+];
+const DIAGRAM_TYPES = ["Activity Diagram", "Sequence Diagram", "BPMN"];
+const FALLBACK_MODELS = ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"];
+const PROMPT_REPO = { repo: "Tuon-Tun/Claude-Code--Path-To-Claude-Code-Executable", branch: "main" };
+const PROMPT_PATHS = {
+  input_router: "knowledge-base/input-router/SKILL.md",
+  input_schema: "knowledge-base/input-router/resources/output_schema.json",
+  product_framing: "knowledge-base/product-framing/SKILL.md",
+  user_story: "knowledge-base/knowledge/user-story-skill/SKILL.md",
+  template_skill: "knowledge-base/prd-template/SKILL.md",
+  prd_template: "knowledge-base/prd-template/resources/prd-template.md",
+  diagram_writer: "knowledge-base/prd-template/diagram-writer/SKILL.md",
+  reviewer: "knowledge-base/prd-reviewer.md"
+};
+const NEEDS = "[NEEDS_CLARIFICATION]";
+const NOTE_RE = /^> \[!WARNING\] REVIEWER'S NOTE \(RN-\d+\)\n(?:> .*\n?)+(?:\n|$)/gm;
+
+/* ---------------- state ---------------- */
+let PROMPTS = null;
+const state = {
+  raw: "", sections: ALL_SECTIONS.slice(), diagrams: [],
+  brief: null, framing: "", draft: "", reviewedDraft: "",
+  notes: [], reviewPass: 0, usage: { input: 0, output: 0 }
+};
+
+/* ---------------- settings ---------------- */
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem("prdw.settings") || "{}"); } catch { return {}; }
+}
+function saveSettings(s) { localStorage.setItem("prdw.settings", JSON.stringify(s)); }
+
+/* ---------------- helpers ---------------- */
+const $ = (sel, el) => (el || document).querySelector(sel);
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function featureFileName(name) {
+  let s = String(name || "").trim().replace(/[ _]+/g, "-");
+  s = s.replace(/[^A-Za-z0-9-]+/g, "").replace(/-{2,}/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+  return s || "feature";
+}
+
+function extractJSON(text) {
+  let s = String(text).trim();
+  s = s.replace(/^```[a-zA-Z]*\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+  const start = Math.min(...["{", "["].map(c => { const i = s.indexOf(c); return i < 0 ? Infinity : i; }));
+  if (!isFinite(start)) throw new Error("No JSON found in the response");
+  const open = s[start], close = open === "{" ? "}" : "]";
+  const end = s.lastIndexOf(close);
+  if (end <= start) throw new Error("Unbalanced JSON in the response");
+  return JSON.parse(s.slice(start, end + 1));
+}
+
+function stripReviewerNotes(md) { return String(md).replace(NOTE_RE, ""); }
+
+function insertReviewerNotes(md, notes) {
+  const lines = String(md).split("\n");
+  const pending = [];
+  const oneLine = (v) => String(v || "").replace(/\s*\n\s*/g, " ").trim();
+  for (let ni = 0; ni < notes.length; ni++) {
+    const n = notes[ni];
+    // note_id must match the strip regex (RN-\d+) or the note would survive a "clean" export
+    const nid = /^RN-\d+$/.test(n.note_id || "") ? n.note_id : "RN-" + String(ni + 1).padStart(2, "0");
+    const block = [
+      `> [!WARNING] REVIEWER'S NOTE (${nid})`,
+      `> **Risk:** ${oneLine(n.risk)}`,
+      `> **Option A:** ${oneLine(n.fix_a)}`,
+      `> **Option B:** ${oneLine(n.fix_b)}`, ""
+    ];
+    const secNum = (String(n.section || "").match(/\d+(?:\.\d+)*/) || [null])[0];
+    const secText = String(n.section || "").toLowerCase();
+    let idx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (!/^#{1,4}\s/.test(lines[i])) continue;
+      const h = lines[i].toLowerCase();
+      if ((secNum && h.includes(secNum)) || (secText && secText.length > 3 && h.includes(secText.slice(0, 24)))) { idx = i; break; }
+    }
+    if (idx < 0) { pending.push(block); continue; }
+    let at = idx + 1;
+    if (lines[at] === "") at++;
+    lines.splice(at, 0, ...block);
+  }
+  if (pending.length) {
+    lines.push("", "## Reviewer Notes (unplaced)", "");
+    pending.forEach(b => lines.push(...b));
+  }
+  return lines.join("\n");
+}
+
+/* minimal JSON-Schema validator: covers the subset the brief schema uses */
+function validateAgainstSchema(data, schema, root, path) {
+  root = root || schema; path = path || "$";
+  const errs = [];
+  let sc = schema;
+  if (sc.$ref) {
+    const name = sc.$ref.split("/").pop();
+    sc = (root.$defs || {})[name] || {};
+  }
+  const typeOf = (v) => Array.isArray(v) ? "array" : v === null ? "null" : typeof v;
+  if (sc.type) {
+    const ty = typeOf(data);
+    const want = sc.type === "boolean" ? "boolean" : sc.type;
+    if (!(ty === want || (want === "number" && ty === "number"))) { errs.push(`${path}: expected ${want}, got ${ty}`); return errs; }
+  }
+  if (sc.enum && !sc.enum.includes(data)) errs.push(`${path}: "${data}" not in allowed values`);
+  if (sc.pattern && typeof data === "string" && !(new RegExp(sc.pattern)).test(data)) errs.push(`${path}: does not match ${sc.pattern}`);
+  if (sc.minLength && typeof data === "string" && data.length < sc.minLength) errs.push(`${path}: empty string`);
+  if (sc.type === "object" && data && typeof data === "object") {
+    for (const req of sc.required || []) if (!(req in data)) errs.push(`${path}: missing required "${req}"`);
+    for (const [k, v] of Object.entries(data)) {
+      if (sc.properties && sc.properties[k]) errs.push(...validateAgainstSchema(v, sc.properties[k], root, `${path}.${k}`));
+      else if (sc.additionalProperties === false && sc.properties) errs.push(`${path}: unexpected property "${k}"`);
+    }
+  }
+  if (sc.type === "array" && Array.isArray(data)) {
+    if (sc.minItems && data.length < sc.minItems) errs.push(`${path}: needs at least ${sc.minItems} item(s)`);
+    if (sc.uniqueItems && new Set(data.map(x => JSON.stringify(x))).size !== data.length) errs.push(`${path}: duplicate items`);
+    if (sc.items) data.forEach((v, i) => errs.push(...validateAgainstSchema(v, sc.items, root, `${path}[${i}]`)));
+  }
+  return errs;
+}
+
+/* ---------------- markdown renderer ---------------- */
+function inlineMd(s) {
+  return s
+    .replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+function mdToHtml(md) {
+  const src = String(md).replace(/\r\n/g, "\n").split("\n");
+  const out = [];
+  let i = 0, inCode = false, codeBuf = [], listStack = [];
+  const closeLists = () => { while (listStack.length) out.push(`</${listStack.pop()}>`); };
+  while (i < src.length) {
+    const line = src[i];
+    if (/^```/.test(line)) {
+      if (!inCode) { closeLists(); inCode = true; codeBuf = []; }
+      else { out.push(`<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`); inCode = false; }
+      i++; continue;
+    }
+    if (inCode) { codeBuf.push(line); i++; continue; }
+
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { closeLists(); out.push(`<h${h[1].length}>${inlineMd(esc(h[2]))}</h${h[1].length}>`); i++; continue; }
+    if (/^\s*(---+|\*\*\*+)\s*$/.test(line)) { closeLists(); out.push("<hr>"); i++; continue; }
+
+    if (/^\s*>/.test(line)) {
+      closeLists();
+      const quote = [];
+      while (i < src.length && /^\s*>/.test(src[i])) { quote.push(src[i].replace(/^\s*>\s?/, "")); i++; }
+      out.push(`<blockquote>${quote.map(q => `<p>${inlineMd(esc(q))}</p>`).join("")}</blockquote>`);
+      continue;
+    }
+
+    if (/^\s*\|/.test(line) && i + 1 < src.length && /^\s*\|[\s|:-]+\|?\s*$/.test(src[i + 1])) {
+      closeLists();
+      const cells = (l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => inlineMd(esc(c.trim())));
+      const head = cells(line);
+      i += 2;
+      const rows = [];
+      while (i < src.length && /^\s*\|/.test(src[i])) { rows.push(cells(src[i])); i++; }
+      out.push("<table><thead><tr>" + head.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>" +
+        rows.map(r => "<tr>" + r.map(c => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table>");
+      continue;
+    }
+
+    const li = line.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+    if (li) {
+      const kind = /\d/.test(li[2]) ? "ol" : "ul";
+      if (listStack[listStack.length - 1] !== kind) { closeLists(); out.push(`<${kind}>`); listStack.push(kind); }
+      out.push(`<li>${inlineMd(esc(li[3]))}</li>`);
+      i++; continue;
+    }
+
+    if (line.trim() === "") { closeLists(); i++; continue; }
+    closeLists();
+    out.push(`<p>${inlineMd(esc(line))}</p>`);
+    i++;
+  }
+  if (inCode) out.push(`<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`);
+  closeLists();
+  return out.join("\n");
+}
+
+/* ---------------- Anthropic API ---------------- */
+function anthHeaders() {
+  const s = getSettings();
+  return {
+    "x-api-key": s.apiKey || "",
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+    "content-type": "application/json"
+  };
+}
+
+async function listModels() {
+  const r = await fetch("https://api.anthropic.com/v1/models?limit=100", { headers: anthHeaders() });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j = await r.json();
+  return (j.data || []).map(m => m.id);
+}
+
+async function readSseStream(resp, onDelta) {
+  const reader = resp.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", text = "", stopReason = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split("\n");
+    buf = parts.pop();
+    for (const ln of parts) {
+      if (!ln.startsWith("data:")) continue;
+      let ev;
+      try { ev = JSON.parse(ln.slice(5)); } catch { continue; }
+      if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") {
+        text += ev.delta.text;
+        if (onDelta) onDelta(ev.delta.text, text);
+      } else if (ev.type === "message_start" && ev.message && ev.message.usage) {
+        state.usage.input += ev.message.usage.input_tokens || 0;
+      } else if (ev.type === "message_delta") {
+        if (ev.usage) state.usage.lastOut = ev.usage.output_tokens || 0;
+        if (ev.delta && ev.delta.stop_reason) stopReason = ev.delta.stop_reason;
+      } else if (ev.type === "error") {
+        const etype = (ev.error || {}).type || "";
+        const err = new Error((ev.error || {}).message || "stream error");
+        if (etype === "overloaded_error" || etype === "api_error") err.retryable = true;
+        throw err;
+      }
+    }
+  }
+  state.usage.output += state.usage.lastOut || 0;
+  state.usage.lastOut = 0;
+  renderUsage();
+  return { text, stopReason };
+}
+
+async function callClaude({ system, messages, onDelta }) {
+  const s = getSettings();
+  if (!s.apiKey) throw new Error(t("needKey"));
+  const body = {
+    model: s.model || FALLBACK_MODELS[0],
+    max_tokens: Math.min(Math.max(parseInt(s.maxTokens, 10) || 8192, 1024), 64000),
+    stream: true, system, messages
+  };
+  const RETRYABLE = [408, 409, 429, 529];
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, (lastErr && lastErr.waitMs) || attempt * 3000));
+    let resp;
+    try {
+      resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST", headers: anthHeaders(), body: JSON.stringify(body)
+      });
+    } catch (e) { lastErr = e; continue; }
+    if (RETRYABLE.includes(resp.status) || resp.status >= 500) {
+      lastErr = new Error(`HTTP ${resp.status}`);
+      const ra = parseFloat(resp.headers.get("retry-after"));
+      lastErr.waitMs = Math.min(Math.max(isNaN(ra) ? 0 : ra * 1000, (attempt + 1) * 3000), 60000);
+      continue;
+    }
+    if (!resp.ok) {
+      let msg = `HTTP ${resp.status}`;
+      try { msg += ": " + ((await resp.json()).error || {}).message; } catch {}
+      if (resp.status === 400 && /max_tokens/i.test(msg)) msg += " — " + t("lowerMaxTok");
+      throw new Error(msg);
+    }
+    try {
+      const { text, stopReason } = await readSseStream(resp, onDelta);
+      if (stopReason === "max_tokens") throw Object.assign(new Error(t("truncated")), { fatal: true });
+      return text;
+    } catch (e) {
+      if (!e.fatal && e.retryable && attempt < 2) { lastErr = e; continue; }
+      throw e;
+    }
+  }
+  throw lastErr || new Error("request failed");
+}
+
+function renderUsage() {
+  $("#usageTotals").textContent =
+    state.usage.input + state.usage.output > 0
+      ? `↑${state.usage.input.toLocaleString()} ↓${state.usage.output.toLocaleString()} ${t("tokensUsed")}`
+      : "";
+}
+
+/* ---------------- GitHub API ---------------- */
+function ghHeaders() {
+  const s = getSettings();
+  const h = { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+  if (s.ghToken) h["Authorization"] = "Bearer " + s.ghToken;
+  return h;
+}
+async function ghFetchRaw(repo, branch, path) {
+  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`,
+    { headers: Object.assign({}, ghHeaders(), { "Accept": "application/vnd.github.raw+json" }) });
+  if (!r.ok) throw new Error(`GitHub ${r.status} for ${path}`);
+  return r.text();
+}
+function utf8b64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+async function ghPutFile(repo, branch, path, content, message) {
+  const url = `https://api.github.com/repos/${repo}/contents/${encodeURI(path)}`;
+  let sha;
+  const probe = await fetch(`${url}?ref=${encodeURIComponent(branch)}`, { headers: ghHeaders() });
+  if (probe.ok) sha = (await probe.json()).sha;
+  const body = { message, branch, content: utf8b64(content) };
+  if (sha) body.sha = sha;
+  const r = await fetch(url, { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, ghHeaders()), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  return (await r.json()).content.html_url;
+}
+
+/* ---------------- prompt loading ---------------- */
+function loadEmbeddedPrompts() {
+  const el = document.getElementById("prompt-data");
+  const data = JSON.parse(el.textContent);
+  return data.__placeholder__ ? null : data;
+}
+async function initPrompts(statusEl) {
+  const s = getSettings();
+  const embedded = loadEmbeddedPrompts();
+  PROMPTS = embedded;
+  if (s.freshPrompts || !embedded) {
+    try {
+      const fresh = {};
+      await Promise.all(Object.entries(PROMPT_PATHS).map(async ([k, p]) => {
+        fresh[k] = await ghFetchRaw(PROMPT_REPO.repo, PROMPT_REPO.branch, p);
+      }));
+      PROMPTS = fresh;
+      if (statusEl) statusEl.textContent = t("promptsFresh");
+      return;
+    } catch (e) {
+      if (!embedded) throw new Error("Cannot load prompts (offline + unbuilt file): " + e.message);
+    }
+  }
+  if (statusEl) statusEl.textContent = t("promptsEmbedded");
+}
+const schemaObj = () => JSON.parse(PROMPTS.input_schema);
+
+/* ---------------- prompt builders ---------------- */
+const INLINE_NOTE = "\n\n---\nNote: every standards document this skill references is included inline in this prompt. Do not attempt to read files.";
+function sysRouter() {
+  return PROMPTS.input_router +
+    "\n\n---\n## User Story standards (rule 6 requires these before extracting User_Story_Candidates)\n\n" +
+    PROMPTS.user_story +
+    "\n\n---\n## Web session contract\n" +
+    "- This pipeline runs from a local web app; the app handles saving and exporting files itself. Set \"Delivery_Mode\" to \"CHAT_TEXT_ONLY\" and \"Output_Artifacts\" to [\"Markdown File\"].\n" +
+    `- Set "Active_Sections" to exactly this list: ${JSON.stringify(state.sections)}\n` +
+    `- Set "Diagram_Requirements" to exactly this list: ${JSON.stringify(state.diagrams.length ? state.diagrams : ["None"])}\n` +
+    "- Set \"Clarification_Confirmed\" to false.\n" +
+    "- The output MUST be a single JSON object that validates against this JSON Schema (a contract, not an example):\n\n" +
+    PROMPTS.input_schema + "\n\nReturn ONLY the JSON object.";
+}
+function sysClarifyQuestions() {
+  return "You are the PRD pipeline orchestrator at Step 1.5 (clarification gate). " +
+    "Given the approved brief JSON, write a concise numbered list of clarification questions covering every field that contains \"" + NEEDS + "\". " +
+    "Prefix each question with the JSON field name in [brackets]. Group related questions. Match the language of the brief content. " +
+    "Output only the numbered list. If no field contains the marker, output exactly: NO_GAPS";
+}
+function sysClarifyUpdate() {
+  return "You are the PRD pipeline orchestrator updating the brief JSON with the user's clarification answers.\n" +
+    "Rules:\n- Only change fields that the answers actually address; keep every unanswered field as \"" + NEEDS + "\".\n" +
+    "- Do not invent details.\n- Keep \"Clarification_Confirmed\" as false; the app flips it after explicit user approval.\n" +
+    "- The result MUST still validate against this schema:\n\n" + PROMPTS.input_schema + "\n\nReturn ONLY the updated JSON object.";
+}
+function sysFraming() {
+  return PROMPTS.product_framing +
+    "\n\n---\n## User Story standards (apply strictly)\n\n" + PROMPTS.user_story +
+    "\n\n---\nWeb session: return the Product Framing Pack as Markdown only. Do not mention files." + INLINE_NOTE;
+}
+function sysDraft() {
+  return PROMPTS.template_skill +
+    "\n\n---\n## PRD Template (fill this exactly)\n\n" + PROMPTS.prd_template +
+    "\n\n---\n## Web session contract\n" +
+    "- Return ONLY the completed PRD Markdown, no commentary before or after.\n" +
+    "- Apply the Active_Sections gate from the brief strictly.\n" +
+    "- If diagram code blocks are provided in the input, embed them verbatim in Section 3.3. " +
+    "If Diagram_Requirements is [\"None\"], keep Section 3.3 and state: No diagrams requested for this PRD." + INLINE_NOTE;
+}
+function sysDiagram() {
+  return PROMPTS.diagram_writer +
+    "\n\n---\nThis is a PRD pipeline call: output only the requested fenced code block(s), no prose, no offers.";
+}
+function sysReviewer(pass, prevNotes) {
+  let s = PROMPTS.reviewer + "\n\n---\nReturn ONLY the JSON array, nothing else.";
+  if (pass > 1) {
+    s += `\n\nThis is review pass ${pass}. Previous notes:\n` + JSON.stringify(prevNotes) +
+      "\nOnly flag issues introduced by the latest edit or still unresolved. Do not re-list resolved notes.";
+  }
+  return s;
+}
+function sysApplyEdits() {
+  return "You are updating a PRD draft that is in the final approval loop.\n" +
+    "Apply the user's requested edits to the draft. Keep the template structure, the `Done when` acceptance-criteria format, " +
+    "and the single-sentence JTBD job story format. Do not add reviewer note callouts; the app manages them. " +
+    "Do not invent business rules beyond what the user asked. Return ONLY the full updated PRD Markdown.";
+}
+
+/* ---------------- UI plumbing ---------------- */
+const STEP_KEYS = ["s0", "s1", "s15", "s2", "s3", "s4", "s5", "s6"];
+function renderStepsBar(activeIdx) {
+  const bar = $("#stepsBar");
+  bar.innerHTML = "";
+  t("stepNames").forEach((name, i) => {
+    const li = document.createElement("li");
+    li.textContent = name;
+    if (i < activeIdx) li.className = "done";
+    if (i === activeIdx) li.className = "active";
+    bar.appendChild(li);
+  });
+}
+function addCard(id, title, sub) {
+  const div = document.createElement("div");
+  div.className = "card";
+  div.id = id;
+  div.innerHTML = `<div class="headrow"><h2>${esc(title)}</h2><span class="badge" data-role="badge"></span></div>
+    <p class="sub">${esc(sub)}</p><div class="body"></div>`;
+  $("#flow").appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "start" });
+  return div;
+}
+function setBadge(card, text, cls) {
+  const b = $('[data-role="badge"]', card);
+  b.textContent = text || "";
+  b.className = "badge" + (cls ? " " + cls : "");
+}
+function collapseCard(card) { card.classList.add("collapsed"); }
+function streamBox(parent) {
+  const pre = document.createElement("pre");
+  pre.className = "stream";
+  parent.appendChild(pre);
+  return pre;
+}
+function statusLine(parent) {
+  const d = document.createElement("div");
+  d.className = "status";
+  parent.appendChild(d);
+  return d;
+}
+async function runStreamed(card, system, messages, label) {
+  const body = $(".body", card);
+  const pre = streamBox(body);
+  setBadge(card, `${t("working")}…`, "warn");
+  pre.innerHTML = `<span class="spin"></span> ${esc(label || t("working"))}…`;
+  let started = false;
+  const text = await callClaude({
+    system, messages,
+    onDelta: (_, full) => {
+      if (!started) { started = true; }
+      pre.textContent = full;
+      pre.scrollTop = pre.scrollHeight;
+    }
+  });
+  return { pre, text };
+}
+
+/* ---------------- pipeline steps ---------------- */
+function step0() {
+  renderStepsBar(0);
+  const card = addCard("card-s0", t("s0Title"), t("s0Sub"));
+  const body = $(".body", card);
+  body.innerHTML = `
+    <label>${esc(t("rawLabel"))}</label>
+    <textarea id="rawInput" class="tall" placeholder="${esc(t("rawPh"))}"></textarea>
+    <label>${esc(t("diagramsLabel"))}</label>
+    <div class="checks" id="diagChecks"></div>
+    <label>${esc(t("sectionsLabel"))}</label>
+    <div class="checks" id="secChecks"></div>
+    <div class="actions"><button class="primary" id="startBtn">${esc(t("startBtn"))}</button>
+    <span class="status" id="s0Status"></span></div>`;
+  DIAGRAM_TYPES.forEach(d => {
+    $("#diagChecks", body).insertAdjacentHTML("beforeend",
+      `<label><input type="checkbox" value="${esc(d)}"> ${esc(d)}${d === "BPMN" ? " ⚠️" : ""}</label>`);
+  });
+  $("#diagChecks", body).insertAdjacentHTML("afterend", `<div class="hint">${esc(t("bpmnWarn"))}</div>`);
+  ALL_SECTIONS.forEach(sec => {
+    $("#secChecks", body).insertAdjacentHTML("beforeend",
+      `<label><input type="checkbox" value="${esc(sec)}" checked> ${esc(sec)}</label>`);
+  });
+  $("#startBtn", body).onclick = async () => {
+    const raw = $("#rawInput", body).value.trim();
+    const st = $("#s0Status", body);
+    if (!getSettings().apiKey) { st.textContent = t("needKey"); st.className = "status err"; $("#settingsDlg").showModal(); return; }
+    if (!raw) { st.textContent = t("needRaw"); st.className = "status err"; return; }
+    state.raw = raw;
+    state.diagrams = [...body.querySelectorAll("#diagChecks input:checked")].map(c => c.value);
+    state.sections = [...body.querySelectorAll("#secChecks input:checked")].map(c => c.value);
+    if (!state.sections.length) state.sections = ALL_SECTIONS.slice();
+    $("#startBtn", body).disabled = true;
+    setBadge(card, "✓", "ok");
+    collapseCard(card);
+    step1([{ role: "user", content: state.raw }]);
+  };
+}
+
+async function step1(messages) {
+  renderStepsBar(1);
+  const card = addCard("card-s1-" + Date.now(), t("s1Title"), t("s1Sub"));
+  const body = $(".body", card);
+  try {
+    const { pre, text } = await runStreamed(card, sysRouter(), messages, t("working"));
+    let brief = extractJSON(text);
+    pre.remove();
+    const errs = validateAgainstSchema(brief, schemaObj());
+    body.insertAdjacentHTML("beforeend", `
+      <textarea id="briefBox" class="tall" spellcheck="false"></textarea>
+      <div class="status ${errs.length ? "err" : "ok"}" id="valStatus"></div>
+      <textarea id="fbBox" placeholder="${esc(t("feedbackPh"))}" style="min-height:60px"></textarea>
+      <div class="actions">
+        <button class="primary" id="approveBtn">${esc(t("approve"))}</button>
+        <button id="regenBtn">${esc(t("regenerate"))}</button>
+      </div>`);
+    const box = $("#briefBox", body);
+    box.value = JSON.stringify(brief, null, 2);
+    const valStatus = $("#valStatus", body);
+    const runVal = () => {
+      try {
+        const obj = JSON.parse(box.value);
+        const e = validateAgainstSchema(obj, schemaObj());
+        valStatus.textContent = e.length ? `${t("validationFail")}: ${e.slice(0, 3).join(" · ")}` : t("validationOk");
+        valStatus.className = "status " + (e.length ? "err" : "ok");
+        return e.length ? null : obj;
+      } catch (err) {
+        valStatus.textContent = "JSON: " + err.message; valStatus.className = "status err"; return null;
+      }
+    };
+    runVal();
+    box.addEventListener("input", runVal);
+    $("#approveBtn", body).onclick = () => {
+      const obj = runVal();
+      if (!obj) return;
+      state.brief = obj;
+      // the approved brief is the contract: user edits to sections/diagrams win over Step 0 picks
+      state.sections = obj.Active_Sections.slice();
+      state.diagrams = (obj.Diagram_Requirements || []).filter(d => d !== "None");
+      setBadge(card, "✓", "ok"); collapseCard(card);
+      step15();
+    };
+    $("#regenBtn", body).onclick = () => {
+      const fb = $("#fbBox", body).value.trim() || "Please regenerate the brief more carefully.";
+      collapseCard(card);
+      step1([...messages, { role: "assistant", content: box.value }, { role: "user", content: fb }]);
+    };
+  } catch (e) { failCard(card, e, () => step1(messages)); }
+}
+
+async function step15() {
+  renderStepsBar(2);
+  const card = addCard("card-s15-" + Date.now(), t("s15Title"), t("s15Sub"));
+  const body = $(".body", card);
+  const briefStr = JSON.stringify(state.brief, null, 2);
+  const finish = () => {
+    state.brief.Clarification_Confirmed = true;
+    setBadge(card, "✓", "ok"); collapseCard(card);
+    step2([]);
+  };
+  if (!briefStr.includes(NEEDS)) {
+    body.innerHTML = `<p>${esc(t("noGaps"))}</p><div class="actions"><button class="primary" id="okBtn">${esc(t("confirmBrief"))}</button></div>`;
+    $("#okBtn", body).onclick = finish;
+    return;
+  }
+  try {
+    const { pre, text } = await runStreamed(card, sysClarifyQuestions(), [{ role: "user", content: briefStr }]);
+    pre.remove();
+    if (text.trim() === "NO_GAPS") {
+      body.innerHTML = `<p>${esc(t("noGaps"))}</p><div class="actions"><button class="primary" id="okBtn">${esc(t("confirmBrief"))}</button></div>`;
+      $("#okBtn", body).onclick = finish;
+      return;
+    }
+    body.insertAdjacentHTML("beforeend", `
+      <div class="md">${mdToHtml(text)}</div>
+      <textarea id="ansBox" placeholder="${esc(t("answersPh"))}"></textarea>
+      <div class="actions">
+        <button class="primary" id="ansBtn">${esc(t("submitAnswers"))}</button>
+        <button id="tbdBtn">${esc(t("keepTbd"))}</button>
+      </div>`);
+    $("#tbdBtn", body).onclick = finish;
+    $("#ansBtn", body).onclick = async () => {
+      const ans = $("#ansBox", body).value.trim();
+      if (!ans) return;
+      $("#ansBtn", body).disabled = true;
+      try {
+        const { pre: p2, text: t2 } = await runStreamed(card, sysClarifyUpdate(),
+          [{ role: "user", content: `Brief JSON:\n${briefStr}\n\nQuestions:\n${text}\n\nUser answers:\n${ans}` }]);
+        const updated = extractJSON(t2);
+        p2.remove();
+        const errs = validateAgainstSchema(updated, schemaObj());
+        if (errs.length) throw new Error(errs.slice(0, 3).join(" · "));
+        state.brief = updated;
+        body.insertAdjacentHTML("beforeend",
+          `<pre class="stream">${esc(JSON.stringify(updated, null, 2))}</pre>
+           <div class="actions"><button class="primary" id="confBtn">${esc(t("confirmBrief"))}</button></div>`);
+        $("#confBtn", body).onclick = finish;
+      } catch (e) {
+        $("#ansBtn", body).disabled = false;
+        statusLine(body).textContent = `${t("callFailed")}: ${e.message}`;
+      }
+    };
+  } catch (e) { failCard(card, e, step15); }
+}
+
+async function step2(history) {
+  renderStepsBar(3);
+  const card = addCard("card-s2-" + Date.now(), t("s2Title"), t("s2Sub"));
+  const body = $(".body", card);
+  const baseMsg = { role: "user", content: `Approved brief JSON:\n${JSON.stringify(state.brief, null, 2)}\n\nRaw input:\n${state.raw}` };
+  const messages = [baseMsg, ...history];
+  try {
+    const { pre, text } = await runStreamed(card, sysFraming(), messages);
+    pre.remove();
+    state.framing = text;
+    body.insertAdjacentHTML("beforeend", `
+      <div class="md">${mdToHtml(text)}</div>
+      <textarea id="fb2" placeholder="${esc(t("feedbackPh"))}" style="min-height:60px"></textarea>
+      <div class="actions">
+        <button class="primary" id="ap2">${esc(t("approve"))}</button>
+        <button id="rq2">${esc(t("requestChanges"))}</button>
+      </div>`);
+    $("#ap2", body).onclick = () => { setBadge(card, "✓", "ok"); collapseCard(card); step3(); };
+    $("#rq2", body).onclick = () => {
+      const fb = $("#fb2", body).value.trim();
+      if (!fb) return;
+      collapseCard(card);
+      step2([...history, { role: "assistant", content: text }, { role: "user", content: fb }]);
+    };
+  } catch (e) { failCard(card, e, () => step2(history)); }
+}
+
+async function step3() {
+  renderStepsBar(4);
+  const card = addCard("card-s3-" + Date.now(), t("s3Title"), t("s3Sub"));
+  const body = $(".body", card);
+  try {
+    const diagramWanted = state.sections.includes("Process Diagrams") &&
+      (state.brief.Diagram_Requirements || []).filter(d => d !== "None");
+    let diagramBlocks = "";
+    if (diagramWanted && diagramWanted.length) {
+      for (const dt of diagramWanted) {
+        const st = statusLine(body);
+        st.innerHTML = `<span class="spin"></span> ${esc(t("genDiagram"))}: ${esc(dt)}…`;
+        const dText = await callClaude({
+          system: sysDiagram(),
+          messages: [{
+            role: "user", content:
+              `diagram_type: ${dt}\nfeature_name: ${state.brief.Feature_Name}\n` +
+              `actors: ${JSON.stringify(state.brief.Target_Users)}\n` +
+              `components: ${JSON.stringify(state.brief.API_or_Integration_Notes)}\n` +
+              `happy_path: ${JSON.stringify(state.brief.User_Flow)}\n` +
+              `edge_cases: ${JSON.stringify(state.brief.Business_Logic_and_Rules)}`
+          }]
+        });
+        diagramBlocks += `\n\n### ${dt}\n\n${dText.trim()}\n`;
+        st.textContent = `✓ ${dt}`;
+        st.className = "status ok";
+      }
+    }
+    const userMsg =
+      `Approved brief JSON:\n${JSON.stringify(state.brief, null, 2)}\n\n` +
+      `Approved Product Framing Pack (source of truth for sections 2.2 and 3.1):\n${state.framing}` +
+      (diagramBlocks ? `\n\nDiagram code to embed verbatim in Section 3.3:\n${diagramBlocks}` : "");
+    const { pre, text } = await runStreamed(card, sysDraft(), [{ role: "user", content: userMsg }]);
+    state.draft = text.trim();
+    pre.remove();
+    setBadge(card, "✓", "ok"); collapseCard(card);
+    step4();
+  } catch (e) { failCard(card, e, step3); }
+}
+
+async function step4() {
+  renderStepsBar(5);
+  const passNo = state.reviewPass + 1;
+  const card = addCard("card-s4-" + Date.now(), `${t("s4Title")} (pass ${passNo})`, t("s4Sub"));
+  const body = $(".body", card);
+  try {
+    let notes = null, invalid = false;
+    for (let attempt = 0; attempt < 2 && notes === null; attempt++) {
+      const { pre, text } = await runStreamed(card, sysReviewer(passNo, state.notes),
+        [{ role: "user", content: state.draft }]);
+      try {
+        const parsed = extractJSON(text);
+        if (Array.isArray(parsed)) notes = parsed;
+      } catch { /* one retry, per pipeline rule */ }
+      if (notes !== null || attempt === 0) pre.remove();
+      if (notes === null && attempt === 1) {
+        // spec: surface the raw reviewer output instead of silently dropping it
+        invalid = true;
+        statusLine(body).textContent = t("reviewerInvalid");
+        notes = [];
+      }
+    }
+    state.reviewPass = passNo; // failed calls (thrown above) never reach here, so they don't consume passes
+    state.notes = notes;
+    state.reviewedDraft = notes.length ? insertReviewerNotes(state.draft, notes) : state.draft;
+    const msg = notes.length ? `${notes.length} ${t("notesFound")}` : t("noNotes");
+    body.insertAdjacentHTML("beforeend", `<div class="status ${notes.length ? "" : "ok"}">${esc(msg)}</div>`);
+    setBadge(card, notes.length ? String(notes.length) : invalid ? "!" : "✓", notes.length || invalid ? "warn" : "ok");
+    if (!invalid) collapseCard(card);
+    step5();
+  } catch (e) { failCard(card, e, step4); }
+}
+
+function step5() {
+  renderStepsBar(6);
+  const card = addCard("card-s5-" + Date.now(), t("s5Title"), t("s5Sub"));
+  const body = $(".body", card);
+  const capped = state.reviewPass >= 3;
+  body.innerHTML = `
+    <div class="md" id="printTarget">${mdToHtml(state.reviewedDraft)}</div>
+    ${capped ? `<div class="status err">${esc(t("loopCap"))}</div>` : ""}
+    <textarea id="fb5" placeholder="${esc(t("feedbackPh"))}" style="min-height:60px"></textarea>
+    <div class="actions">
+      <button class="primary" id="ap5">${esc(t("approveFinal"))}</button>
+      <button id="sub5">${esc(t("substantive"))}</button>
+      <button id="cos5">${esc(t("cosmetic"))}</button>
+    </div>`;
+  $("#ap5", body).onclick = () => { setBadge(card, "✓", "ok"); collapseCard(card); step6(); };
+  const apply = async (rereview) => {
+    const fb = $("#fb5", body).value.trim();
+    if (!fb) return;
+    ["ap5", "sub5", "cos5"].forEach(id => $("#" + id, body).disabled = true);
+    try {
+      const { pre, text } = await runStreamed(card, sysApplyEdits(),
+        [{ role: "user", content: `Current draft:\n\n${stripReviewerNotes(state.reviewedDraft)}\n\nRequested edits:\n${fb}` }]);
+      pre.remove();
+      state.draft = text.trim();
+      collapseCard(card);
+      // past the 3-pass cap, one more review pass needs an explicit user override — never a silent skip
+      if (rereview && (!capped || confirm(t("capConfirm")))) step4();
+      else { state.reviewedDraft = insertReviewerNotes(state.draft, state.notes); step5(); }
+    } catch (e) {
+      ["ap5", "sub5", "cos5"].forEach(id => $("#" + id, body).disabled = false);
+      statusLine(body).textContent = `${t("callFailed")}: ${e.message}`;
+    }
+  };
+  $("#sub5", body).onclick = () => apply(true);
+  $("#cos5", body).onclick = () => apply(false);
+}
+
+function step6() {
+  renderStepsBar(7);
+  const card = addCard("card-s6", t("s6Title"), t("s6Sub"));
+  const body = $(".body", card);
+  const s = getSettings();
+  const fname = featureFileName(state.brief.Feature_Name);
+  const domain = state.brief.Domain_Name || "general";
+  body.innerHTML = `
+    <label class="inline-check"><input type="checkbox" id="keepNotes"> ${esc(t("keepNotes"))}</label>
+    <div class="actions">
+      <button class="primary" id="dlMd">${esc(t("dlMd"))}</button>
+      <button id="dlDoc">${esc(t("dlDoc"))}</button>
+      <button id="cpMd">${esc(t("copyMd"))}</button>
+      <button id="prBtn">${esc(t("printBtn"))}</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    ${s.ghRepo
+      ? `<label class="inline-check"><input type="checkbox" id="alsoInputs" checked> ${esc(t("alsoInputs"))}</label>
+         <div class="actions"><button class="primary" id="ghBtn">${esc(t("ghSave"))} → ${esc(s.ghRepo)}</button></div>`
+      : `<div class="status">${esc(t("ghNoCfg"))}</div>`}
+    <div class="status" id="exStatus"></div>
+    <div class="actions"><button id="againBtn">${esc(t("startOver"))}</button></div>`;
+  const finalMd = () => $("#keepNotes", body).checked ? state.reviewedDraft : stripReviewerNotes(state.reviewedDraft);
+  const dl = (name, blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  $("#dlMd", body).onclick = () => dl(`${fname}_PRD.md`, new Blob([finalMd()], { type: "text/markdown" }));
+  $("#dlDoc", body).onclick = () => {
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head><meta charset="utf-8"><title>${esc(state.brief.Feature_Name)}</title></head>
+<body style="font-family:Calibri,Arial,sans-serif">${mdToHtml(finalMd())}</body></html>`;
+    dl(`${fname}_PRD.doc`, new Blob([html], { type: "application/msword" }));
+  };
+  $("#cpMd", body).onclick = async () => {
+    await navigator.clipboard.writeText(finalMd());
+    $("#exStatus", body).textContent = t("copied");
+    $("#exStatus", body).className = "status ok";
+  };
+  $("#prBtn", body).onclick = () => window.print();
+  const gh = $("#ghBtn", body);
+  if (gh) gh.onclick = async () => {
+    const st = $("#exStatus", body);
+    gh.disabled = true;
+    st.innerHTML = `<span class="spin"></span> ${esc(t("ghSaving"))}…`; st.className = "status";
+    try {
+      const base = `domain-knowledge/${domain}`;
+      const urls = [];
+      urls.push(await ghPutFile(s.ghRepo, s.ghBranch || "main", `${base}/PRDs/${fname}_PRD.md`,
+        finalMd(), `Add PRD: ${state.brief.Feature_Name}`));
+      if ($("#alsoInputs", body) && $("#alsoInputs", body).checked) {
+        await ghPutFile(s.ghRepo, s.ghBranch || "main", `${base}/inputs/${fname}_input.json`,
+          JSON.stringify(state.brief, null, 2), `Add brief: ${state.brief.Feature_Name}`);
+        await ghPutFile(s.ghRepo, s.ghBranch || "main", `${base}/inputs/${fname}_framing.md`,
+          state.framing, `Add framing pack: ${state.brief.Feature_Name}`);
+      }
+      st.innerHTML = `${esc(t("ghSaved"))} <a href="${esc(urls[0])}" target="_blank" rel="noopener">${esc(urls[0])}</a>`;
+      st.className = "status ok";
+    } catch (e) {
+      st.textContent = `${t("callFailed")}: ${e.message}`; st.className = "status err";
+    } finally { gh.disabled = false; }
+  };
+  $("#againBtn", body).onclick = () => {
+    Object.assign(state, { raw: "", brief: null, framing: "", draft: "", reviewedDraft: "", notes: [], reviewPass: 0 });
+    $("#flow").innerHTML = "";
+    step0();
+  };
+}
+
+function failCard(card, err, retryFn) {
+  setBadge(card, "✗", "err");
+  const body = $(".body", card);
+  const st = statusLine(body);
+  st.className = "status err";
+  st.textContent = `${t("callFailed")}: ${err.message}`;
+  const b = document.createElement("button");
+  b.textContent = t("retry");
+  b.className = "small";
+  b.style.marginTop = "8px";
+  b.onclick = () => { card.remove(); retryFn(); };
+  body.appendChild(b);
+}
+
+/* ---------------- settings dialog ---------------- */
+function bindSettings() {
+  const dlg = $("#settingsDlg");
+  const s = getSettings();
+  $("#setKey").value = s.apiKey || "";
+  $("#setModel").value = s.model || FALLBACK_MODELS[0];
+  $("#setMaxTok").value = s.maxTokens || 8192;
+  $("#setGhToken").value = s.ghToken || "";
+  $("#setGhRepo").value = s.ghRepo || "";
+  $("#setGhBranch").value = s.ghBranch || "main";
+  $("#setFreshPrompts").checked = !!s.freshPrompts;
+  $("#modelList").innerHTML = FALLBACK_MODELS.map(m => `<option value="${m}">`).join("");
+
+  $("#settingsBtn").onclick = () => dlg.showModal();
+  const persist = () => saveSettings({
+    apiKey: $("#setKey").value.trim(),
+    model: $("#setModel").value.trim() || FALLBACK_MODELS[0],
+    maxTokens: parseInt($("#setMaxTok").value, 10) || 8192,
+    ghToken: $("#setGhToken").value.trim(),
+    ghRepo: $("#setGhRepo").value.trim(),
+    ghBranch: $("#setGhBranch").value.trim() || "main",
+    freshPrompts: $("#setFreshPrompts").checked
+  });
+  $("#settingsClose").onclick = () => { persist(); dlg.close(); };
+  dlg.addEventListener("close", persist);
+
+  $("#loadModelsBtn").onclick = async () => {
+    persist();
+    const st = $("#modelStatus");
+    st.textContent = "…";
+    try {
+      const models = await listModels();
+      $("#modelList").innerHTML = models.map(m => `<option value="${esc(m)}">`).join("");
+      st.textContent = `${models.length} models`;
+    } catch (e) { st.textContent = e.message; }
+  };
+  $("#ghTestBtn").onclick = async () => {
+    persist();
+    const st = $("#ghStatus");
+    st.textContent = "…";
+    try {
+      const cfg = getSettings();
+      if (cfg.ghToken) {
+        const r = await fetch("https://api.github.com/user", { headers: ghHeaders() });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        st.textContent = "✓ @" + (await r.json()).login;
+      } else if (cfg.ghRepo) {
+        const r = await fetch(`https://api.github.com/repos/${cfg.ghRepo}`, { headers: ghHeaders() });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        st.textContent = "✓ " + (await r.json()).full_name + " (read-only)";
+      } else st.textContent = "no token / repo set";
+    } catch (e) { st.textContent = "✗ " + e.message; }
+  };
+}
+
+/* ---------------- i18n apply + boot ---------------- */
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $("#langSel").value = LANG;
+}
+async function boot() {
+  applyI18n();
+  bindSettings();
+  renderUsage();
+  $("#langSel").onchange = (e) => {
+    LANG = e.target.value;
+    localStorage.setItem("prdw.lang", LANG);
+    location.reload();
+  };
+  const st = document.createElement("div");
+  st.className = "status";
+  st.style.margin = "0 0 10px";
+  $("main").insertBefore(st, $("#stepsBar"));
+  try { await initPrompts(st); } catch (e) { st.textContent = e.message; st.className = "status err"; return; }
+  step0();
+}
+
+/* test hooks for automated checks */
+window.PRD = { mdToHtml, extractJSON, validateAgainstSchema, stripReviewerNotes, insertReviewerNotes, featureFileName, utf8b64, get prompts() { return PROMPTS; }, state };
+
+boot();
+</script>
+</body>
+</html>

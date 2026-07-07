@@ -215,13 +215,33 @@ def check_product_framing_skill():
     assert_true("Done when" in content, "Product framing skill is missing acceptance criteria guidance")
 
 
+def check_webapp():
+    build = load_module("webapp_build", "webapp/build.py")
+
+    index_path = ROOT / "webapp" / "index.html"
+    assert_true(index_path.is_file(), "webapp/index.html is missing; run webapp/build.py")
+
+    html = index_path.read_text(encoding="utf-8")
+    embedded = build.extract_embedded_payload(html)
+    assert_true("__placeholder__" not in embedded, "webapp/index.html was not built; run webapp/build.py")
+    assert_true(
+        embedded == build.collect_payload(),
+        "webapp/index.html prompts drifted from knowledge-base; run webapp/build.py",
+    )
+    assert_true(
+        html == build.render_html(),
+        "webapp/index.html is out of date with app.src.html; run webapp/build.py",
+    )
+
+
 def main():
     check_input_schema()
     check_export_schema()
     check_create_domain_helper()
     check_export_helper()
     check_product_framing_skill()
-    print(json.dumps({"status": "success", "checks": 5}))
+    check_webapp()
+    print(json.dumps({"status": "success", "checks": 6}))
 
 
 if __name__ == "__main__":
