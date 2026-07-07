@@ -292,6 +292,7 @@ This keeps the workflow lean and uses effort only where it adds real value.
 
 Consistency rules for contributors:
 
+- CI (GitHub Actions) runs `smoke_test.py` on every pull request and on every push to `main` — a red check blocks the merge.
 - Any change under `knowledge-base/` requires `python webapp/build.py` and committing the regenerated `webapp/index.html` — `smoke_test.py` fails otherwise.
 - `output_schema.json` is the Step 1 contract; if you change its `required` list or enums, update `smoke_test.py` in the same commit.
 - Diagram rules live only in `prd-template/diagram-writer/SKILL.md`; never duplicate them elsewhere.
