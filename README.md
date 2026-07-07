@@ -4,6 +4,21 @@ This document explains how to use the PRD Writer workflow and how the end-to-end
 
 ---
 
+## Quick Start — Web App (no IDE required)
+
+If you are not comfortable with IDEs or the command line, use the bundled web app. It runs the exact same pipeline, entirely in your browser.
+
+1. Download [`webapp/index.html`](./webapp/index.html) (or clone the repo) and **open it in any modern browser** — no install, no server.
+2. Click **⚙️ Settings** and paste your **Anthropic API key** (create one at console.anthropic.com). Pick a model — click *Load my models* to list the ones your account can use.
+3. Optionally add a **GitHub token + repository** to save finished PRDs straight into `domain-knowledge/<domain>/PRDs/` of that repo. The token needs the *Contents: read & write* permission.
+4. Describe your feature, tick the sections and diagrams you want, and walk through the approval gates. Export as Markdown, Word (.doc), or straight to GitHub at the end.
+
+Privacy: the API key is stored only in your browser's localStorage, and every call goes directly from your browser to `api.anthropic.com` / `api.github.com` — there is no middleman server. The UI supports English and Vietnamese.
+
+For maintainers: `webapp/index.html` is generated — after changing anything under `knowledge-base/`, run `python webapp/build.py` and commit the result. `smoke_test.py` fails if the embedded prompts drift from the sources.
+
+---
+
 ## 0. Prerequisites
 
 Before running the full IDE pipeline, ensure your environment meets the following requirements. These requirements are not needed when running in chat text-only mode.

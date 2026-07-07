@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PRD Writer Studio</title>
+<style>
+  :root {
+    --bg: #f5f6fa; --card: #ffffff; --ink: #1c2333; --muted: #626b7f;
+    --line: #dde1ea; --accent: #4653c9; --accent-ink: #ffffff;
+    --ok: #1d7a4f; --warn: #a05f0d; --err: #b3261e;
+    --chip: #eceefb; --code-bg: #f0f2f8; --shadow: 0 1px 3px rgba(20,24,40,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12141c; --card: #1c202c; --ink: #e8eaf2; --muted: #9aa3b8;
+      --line: #313749; --accent: #8b95f2; --accent-ink: #12141c;
+      --ok: #5ecf9a; --warn: #e2b45c; --err: #ef8a84;
+      --chip: #272d40; --code-bg: #161927; --shadow: 0 1px 3px rgba(0,0,0,.4);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 20px; background: var(--card); border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; z-index: 20; }
+  .brand { font-weight: 700; font-size: 17px; }
+  .brand small { color: var(--muted); font-weight: 400; margin-left: 8px; }
+  .hdr-actions { display: flex; gap: 8px; align-items: center; }
+  main { max-width: 1000px; margin: 0 auto; padding: 20px 16px 80px; }
+
+  #stepsBar { display: flex; flex-wrap: wrap; gap: 6px; padding: 0; margin: 0 0 18px; list-style: none; }
+  #stepsBar li { padding: 4px 11px; border-radius: 999px; background: var(--chip);
+    color: var(--muted); font-size: 12.5px; border: 1px solid transparent; }
+  #stepsBar li.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  #stepsBar li.done { color: var(--ok); border-color: var(--ok); background: transparent; }
+  #stepsBar li.skipped { text-decoration: line-through; opacity: .6; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    box-shadow: var(--shadow); padding: 18px 20px; margin-bottom: 16px; }
+  .card h2 { margin: 0 0 4px; font-size: 16px; }
+  .card .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .card.collapsed .body { display: none; }
+  .card .headrow { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .badge { font-size: 11.5px; padding: 2px 9px; border-radius: 999px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+  .badge.ok { color: var(--ok); } .badge.warn { color: var(--warn); } .badge.err { color: var(--err); }
+
+  label { display: block; font-size: 13px; font-weight: 600; margin: 12px 0 4px; }
+  textarea, input[type=text], input[type=password], input[type=number], select {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--bg); color: var(--ink); font: inherit; }
+  textarea { min-height: 120px; resize: vertical; }
+  textarea.tall { min-height: 220px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 220px; }
+
+  .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 4px 14px; margin-top: 6px; }
+  .checks label, .inline-check { display: flex; align-items: center; gap: 8px; font-weight: 400; font-size: 13.5px; margin: 2px 0; cursor: pointer; }
+  .checks input, .inline-check input { width: auto; }
+
+  button { font: inherit; font-size: 13.5px; font-weight: 600; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  button.small { padding: 5px 10px; font-size: 12.5px; font-weight: 500; }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  pre.stream { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+    font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .spin { display: inline-block; width: 13px; height: 13px; border: 2px solid var(--muted);
+    border-top-color: transparent; border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: -2px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .status { font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .status.err { color: var(--err); }
+  .status.ok { color: var(--ok); }
+
+  .md { line-height: 1.6; overflow-x: auto; }
+  .md h1 { font-size: 21px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  .md h2 { font-size: 18px; margin-top: 26px; }
+  .md h3 { font-size: 15.5px; margin-top: 20px; }
+  .md h4 { font-size: 14px; }
+  .md table { border-collapse: collapse; margin: 10px 0; width: 100%; font-size: 13.5px; }
+  .md th, .md td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
+  .md th { background: var(--chip); }
+  .md code { background: var(--code-bg); border-radius: 4px; padding: 1px 5px; font-size: 12.5px; }
+  .md pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow: auto; }
+  .md pre code { background: none; padding: 0; }
+  .md blockquote { margin: 10px 0; padding: 8px 14px; border-left: 4px solid var(--warn);
+    background: var(--chip); border-radius: 0 8px 8px 0; }
+  .md blockquote p { margin: 4px 0; }
+  .md hr { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+
+  dialog { border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--ink);
+    max-width: 620px; width: calc(100vw - 40px); padding: 22px 24px; }
+  dialog::backdrop { background: rgba(10,12,20,.55); }
+  .kv { font-size: 12.5px; color: var(--muted); }
+  .totals { font-size: 12px; color: var(--muted); }
+
+  @media print {
+    body * { visibility: hidden; }
+    #printTarget, #printTarget * { visibility: visible; }
+    #printTarget { position: absolute; left: 0; top: 0; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">📝 PRD Writer Studio <small data-i18n="tagline"></small></div>
+  <div class="hdr-actions">
+    <span id="usageTotals" class="totals"></span>
+    <select id="langSel" class="small" style="width:auto">
+      <option value="en">EN</option>
+      <option value="vi">VI</option>
+    </select>
+    <button id="settingsBtn">⚙️ <span data-i18n="settings"></span></button>
+  </div>
+</header>
+
+<main>
+  <ol id="stepsBar"></ol>
+  <section id="flow"></section>
+</main>
+
+<dialog id="settingsDlg">
+  <h2 style="margin-top:0" data-i18n="settings"></h2>
+
+  <label data-i18n="apiKey"></label>
+  <input type="password" id="setKey" placeholder="sk-ant-...">
+  <div class="hint" data-i18n="apiKeyHint"></div>
+
+  <div class="row">
+    <div>
+      <label data-i18n="model"></label>
+      <input type="text" id="setModel" list="modelList" placeholder="claude-sonnet-5">
+      <datalist id="modelList"></datalist>
+      <div class="hint"><button class="small" id="loadModelsBtn" data-i18n="loadModels"></button> <span id="modelStatus" class="kv"></span></div>
+    </div>
+    <div>
+      <label data-i18n="maxTokens"></label>
+      <input type="number" id="setMaxTok" min="1024" max="64000" step="1024" value="8192">
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid var(--line);margin:18px 0">
+
+  <label data-i18n="ghToken"></label>
+  <input type="password" id="setGhToken" placeholder="ghp_... / github_pat_... (optional)">
+  <div class="row">
+    <div>
+      <label data-i18n="ghRepo"></label>
+      <input type="text" id="setGhRepo" placeholder="owner/repository">
+    </div>
+    <div>
+      <label data-i18n="ghBranch"></label>
+      <input type="text" id="setGhBranch" placeholder="main" value="main">
+    </div>
+  </div>
+  <div class="hint" data-i18n="ghHint"></div>
+  <div class="hint"><button class="small" id="ghTestBtn" data-i18n="ghTest"></button> <span id="ghStatus" class="kv"></span></div>
+
+  <label class="inline-check" style="margin-top:14px">
+    <input type="checkbox" id="setFreshPrompts">
+    <span data-i18n="freshPrompts"></span>
+  </label>
+  <div class="hint" data-i18n="freshPromptsHint"></div>
+
+  <div class="actions" style="justify-content:flex-end">
+    <button id="settingsClose" class="primary" data-i18n="save"></button>
+  </div>
+</dialog>
+
+<script type="application/json" id="prompt-data">{"__placeholder__": true}</script>
+
+<script>
+"use strict";
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+  en: {
+    tagline: "human-approved PRDs, no IDE required",
+    settings: "Settings", save: "Save & close",
+    apiKey: "Anthropic API key", apiKeyHint: "Stored only in this browser (localStorage). Calls go directly from your browser to api.anthropic.com — no other server is involved.",
+    model: "Model", loadModels: "Load my models", maxTokens: "Max output tokens",
+    ghToken: "GitHub token (optional)", ghRepo: "GitHub repo to save PRDs (optional)", ghBranch: "Branch",
+    ghHint: "With a repo configured you can save finished PRDs to domain-knowledge/<domain>/PRDs/ via the GitHub API. The token needs the “Contents: read & write” permission on that repo.",
+    ghTest: "Test connection",
+    freshPrompts: "Fetch latest pipeline prompts from GitHub at startup",
+    freshPromptsHint: "When off, the prompt versions embedded in this file are used (works offline).",
+    stepNames: ["0. Scope", "1. Brief", "1.5 Clarify", "2. Framing", "3. Draft", "4. Review", "5. Approve", "6. Export"],
+    s0Title: "Step 0 — Describe the feature & choose the scope",
+    s0Sub: "Write your raw requirements in any language. The pipeline keeps your language throughout.",
+    rawLabel: "Raw requirements / feature idea",
+    rawPh: "Example: Create a Group Lucky Money feature for Lunar New Year. Target users: wallet users in group chats. Flow: open from home screen, enter greeting and total amount, choose random split, send, share claim link… Edge cases: 11th user sees “all envelopes claimed”; insufficient balance blocks sending.",
+    diagramsLabel: "Diagrams to include",
+    sectionsLabel: "PRD sections (untick anything you don't need)",
+    startBtn: "Start the pipeline",
+    needKey: "Add your Anthropic API key in Settings first.",
+    needRaw: "Please describe the feature first.",
+    s1Title: "Step 1 — Structured brief",
+    s1Sub: "The Input Router turns your notes into a structured JSON brief. Review it, edit if needed, then approve.",
+    working: "Working", validationOk: "Schema check: OK", validationFail: "Schema check failed",
+    approve: "Approve", regenerate: "Regenerate with feedback", editJson: "Edit JSON",
+    feedbackPh: "What should be different? (optional feedback)",
+    s15Title: "Step 1.5 — Clarification gate",
+    s15Sub: "Answer what you can. Anything left unanswered stays as TBD in the PRD — nothing is invented.",
+    noGaps: "The brief has no open gaps. Confirm to continue.",
+    answersPh: "Answer the questions here (any format, any language)…",
+    submitAnswers: "Submit answers", keepTbd: "Skip — keep gaps as TBD", confirmBrief: "Confirm brief",
+    s2Title: "Step 2 — Product framing (JTBD + user stories)",
+    s2Sub: "Single-sentence job stories, INVEST user stories, and “Done when” acceptance criteria.",
+    requestChanges: "Request changes",
+    s3Title: "Step 3 — Drafting the PRD",
+    s3Sub: "Filling the standard template. Excluded sections are skipped.",
+    genDiagram: "Generating diagram",
+    s4Title: "Step 4 — Independent QA review",
+    s4Sub: "A reviewer agent hunts for logic gaps and inserts warning notes into the draft.",
+    notesFound: "reviewer note(s) inserted", noNotes: "QA pass found no gaps",
+    s5Title: "Step 5 — Final approval",
+    s5Sub: "Read the reviewed draft. Approve it, or request changes (substantive changes are re-reviewed).",
+    cosmetic: "Apply as cosmetic edit (skip re-review)", substantive: "Apply & re-review",
+    approveFinal: "Approve this PRD",
+    loopCap: "3 review passes reached. Approving now keeps any remaining notes in the document history.",
+    s6Title: "Step 6 — Export",
+    s6Sub: "Your PRD is approved. Save or download it.",
+    keepNotes: "Keep reviewer notes in the export",
+    dlMd: "Download Markdown", dlDoc: "Download Word (.doc)", copyMd: "Copy Markdown", printBtn: "Print / PDF",
+    ghSave: "Save to GitHub", ghSaving: "Saving", ghSaved: "Saved:", ghNoCfg: "Configure a GitHub repo in Settings to enable saving.",
+    alsoInputs: "Also save the brief + framing pack",
+    retry: "Retry", copied: "Copied!",
+    tokensUsed: "tokens", callFailed: "The call failed",
+    promptsFresh: "Prompts refreshed from GitHub", promptsEmbedded: "Using embedded prompts",
+    startOver: "Start a new PRD",
+    truncated: "The response was cut off at the output-token limit. Raise “Max output tokens” in Settings (or exclude some sections) and retry.",
+    lowerMaxTok: "this model has a lower output limit — lower “Max output tokens” in Settings",
+    capConfirm: "3 review passes already ran. Run one more review pass anyway?",
+    reviewerInvalid: "The reviewer did not return valid JSON after a retry. Its raw output is shown above — read it before approving.",
+    bpmnWarn: "⚠️ BPMN is token-heavy and layout coordinates are estimated, so the result will be basic. Choose it only if your tools require BPMN 2.0 XML."
+  },
+  vi: {
+    tagline: "PRD chuẩn, không cần IDE",
+    settings: "Cài đặt", save: "Lưu & đóng",
+    apiKey: "Anthropic API key", apiKeyHint: "Chỉ lưu trong trình duyệt này (localStorage). Mọi lệnh gọi đi thẳng từ trình duyệt của bạn tới api.anthropic.com — không qua máy chủ nào khác.",
+    model: "Model", loadModels: "Tải danh sách model", maxTokens: "Max output tokens",
+    ghToken: "GitHub token (tùy chọn)", ghRepo: "Repo GitHub để lưu PRD (tùy chọn)", ghBranch: "Branch",
+    ghHint: "Khi cấu hình repo, bạn có thể lưu PRD hoàn chỉnh vào domain-knowledge/<domain>/PRDs/ qua GitHub API. Token cần quyền “Contents: read & write” trên repo đó.",
+    ghTest: "Kiểm tra kết nối",
+    freshPrompts: "Tải prompt pipeline mới nhất từ GitHub khi khởi động",
+    freshPromptsHint: "Khi tắt, dùng bản prompt nhúng sẵn trong file này (chạy được offline).",
+    stepNames: ["0. Phạm vi", "1. Brief", "1.5 Làm rõ", "2. Framing", "3. Bản thảo", "4. Review", "5. Duyệt", "6. Xuất"],
+    s0Title: "Bước 0 — Mô tả tính năng & chọn phạm vi",
+    s0Sub: "Viết yêu cầu thô bằng bất kỳ ngôn ngữ nào. Pipeline giữ nguyên ngôn ngữ của bạn xuyên suốt.",
+    rawLabel: "Yêu cầu thô / ý tưởng tính năng",
+    rawPh: "Ví dụ: Tạo tính năng Lì Xì Nhóm cho Tết. Người dùng: user ví trong group chat. Flow: mở từ màn hình chính, nhập lời chúc và tổng tiền, chia ngẫu nhiên, gửi, chia sẻ link nhận… Edge case: người thứ 11 thấy “hết bao lì xì”; không đủ số dư thì chặn gửi.",
+    diagramsLabel: "Sơ đồ cần có",
+    sectionsLabel: "Các section của PRD (bỏ tick nếu không cần)",
+    startBtn: "Bắt đầu pipeline",
+    needKey: "Hãy nhập Anthropic API key trong Cài đặt trước.",
+    needRaw: "Hãy mô tả tính năng trước đã.",
+    s1Title: "Bước 1 — Brief có cấu trúc",
+    s1Sub: "Input Router chuyển ghi chú của bạn thành JSON brief. Xem lại, sửa nếu cần, rồi duyệt.",
+    working: "Đang chạy", validationOk: "Kiểm tra schema: OK", validationFail: "Schema không hợp lệ",
+    approve: "Duyệt", regenerate: "Tạo lại theo góp ý", editJson: "Sửa JSON",
+    feedbackPh: "Bạn muốn khác đi ở điểm nào? (góp ý tùy chọn)",
+    s15Title: "Bước 1.5 — Cổng làm rõ",
+    s15Sub: "Trả lời những gì bạn biết. Phần chưa trả lời sẽ giữ là TBD trong PRD — không bịa thông tin.",
+    noGaps: "Brief không còn điểm mờ. Xác nhận để tiếp tục.",
+    answersPh: "Trả lời các câu hỏi ở đây (tùy ý, ngôn ngữ nào cũng được)…",
+    submitAnswers: "Gửi câu trả lời", keepTbd: "Bỏ qua — giữ TBD", confirmBrief: "Xác nhận brief",
+    s2Title: "Bước 2 — Product framing (JTBD + user story)",
+    s2Sub: "Job story một câu, user story chuẩn INVEST, và acceptance criteria dạng “Done when”.",
+    requestChanges: "Yêu cầu chỉnh sửa",
+    s3Title: "Bước 3 — Viết bản thảo PRD",
+    s3Sub: "Điền theo template chuẩn. Section bị loại sẽ được bỏ qua.",
+    genDiagram: "Đang vẽ sơ đồ",
+    s4Title: "Bước 4 — QA review độc lập",
+    s4Sub: "Reviewer săn lỗ hổng logic và chèn ghi chú cảnh báo vào bản thảo.",
+    notesFound: "ghi chú reviewer đã chèn", noNotes: "QA không tìm thấy lỗ hổng",
+    s5Title: "Bước 5 — Duyệt cuối",
+    s5Sub: "Đọc bản thảo đã review. Duyệt, hoặc yêu cầu sửa (sửa lớn sẽ được review lại).",
+    cosmetic: "Sửa nhỏ (không review lại)", substantive: "Sửa & review lại",
+    approveFinal: "Duyệt PRD này",
+    loopCap: "Đã đủ 3 vòng review. Duyệt bây giờ sẽ giữ các ghi chú còn lại trong lịch sử.",
+    s6Title: "Bước 6 — Xuất file",
+    s6Sub: "PRD đã được duyệt. Lưu hoặc tải về.",
+    keepNotes: "Giữ ghi chú reviewer trong file xuất",
+    dlMd: "Tải Markdown", dlDoc: "Tải Word (.doc)", copyMd: "Copy Markdown", printBtn: "In / PDF",
+    ghSave: "Lưu lên GitHub", ghSaving: "Đang lưu", ghSaved: "Đã lưu:", ghNoCfg: "Cấu hình repo GitHub trong Cài đặt để bật tính năng lưu.",
+    alsoInputs: "Lưu kèm brief + framing pack",
+    retry: "Thử lại", copied: "Đã copy!",
+    tokensUsed: "token", callFailed: "Gọi API thất bại",
+    promptsFresh: "Đã tải prompt mới từ GitHub", promptsEmbedded: "Đang dùng prompt nhúng sẵn",
+    startOver: "Tạo PRD mới",
+    truncated: "Câu trả lời bị cắt do chạm giới hạn output token. Tăng “Max output tokens” trong Cài đặt (hoặc bỏ bớt section) rồi thử lại.",
+    lowerMaxTok: "model này có giới hạn output thấp hơn — hãy giảm “Max output tokens” trong Cài đặt",
+    capConfirm: "Đã chạy đủ 3 vòng review. Vẫn chạy thêm một vòng review nữa?",
+    reviewerInvalid: "Reviewer không trả về JSON hợp lệ sau khi thử lại. Output thô hiển thị ở trên — hãy đọc trước khi duyệt.",
+    bpmnWarn: "⚠️ BPMN rất tốn token và tọa độ layout phải ước lượng nên kết quả sẽ cơ bản. Chỉ chọn nếu công cụ của bạn bắt buộc dùng BPMN 2.0 XML."
+  }
+};
+let LANG = (localStorage.getItem("prdw.lang") || (navigator.language || "en")).slice(0, 2) === "vi" ? "vi" : "en";
+const t = (k) => (I18N[LANG][k] !== undefined ? I18N[LANG][k] : I18N.en[k] || k);
+
+/* ---------------- constants ---------------- */
+const ALL_SECTIONS = [
+  "Problem Statement", "JTBD", "Goals & Success Metrics", "Assumptions & Open Questions",
+  "Feature Epics & User Stories", "Business Rules", "Process Diagrams", "Use Case Specifications",
+  "Functional Requirements", "Non-Functional Requirements", "UI/UX Specifications", "API / Technical Specs"
+];
+const DIAGRAM_TYPES = ["Activity Diagram", "Sequence Diagram", "BPMN"];
+const FALLBACK_MODELS = ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"];
+const PROMPT_REPO = { repo: "Tuon-Tun/Claude-Code--Path-To-Claude-Code-Executable", branch: "main" };
+const PROMPT_PATHS = {
+  input_router: "knowledge-base/input-router/SKILL.md",
+  input_schema: "knowledge-base/input-router/resources/output_schema.json",
+  product_framing: "knowledge-base/product-framing/SKILL.md",
+  user_story: "knowledge-base/knowledge/user-story-skill/SKILL.md",
+  template_skill: "knowledge-base/prd-template/SKILL.md",
+  prd_template: "knowledge-base/prd-template/resources/prd-template.md",
+  diagram_writer: "knowledge-base/prd-template/diagram-writer/SKILL.md",
+  reviewer: "knowledge-base/prd-reviewer.md"
+};
+const NEEDS = "[NEEDS_CLARIFICATION]";
+const NOTE_RE = /^> \[!WARNING\] REVIEWER'S NOTE \(RN-\d+\)\n(?:> .*\n?)+(?:\n|$)/gm;
+
+/* ---------------- state ---------------- */
+let PROMPTS = null;
+const state = {
+  raw: "", sections: ALL_SECTIONS.slice(), diagrams: [],
+  brief: null, framing: "", draft: "", reviewedDraft: "",
+  notes: [], reviewPass: 0, usage: { input: 0, output: 0 }
+};
+
+/* ---------------- settings ---------------- */
+function getSettings() {
+  try { return JSON.parse(localStorage.getItem("prdw.settings") || "{}"); } catch { return {}; }
+}
+function saveSettings(s) { localStorage.setItem("prdw.settings", JSON.stringify(s)); }
+
+/* ---------------- helpers ---------------- */
+const $ = (sel, el) => (el || document).querySelector(sel);
+const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+function featureFileName(name) {
+  let s = String(name || "").trim().replace(/[ _]+/g, "-");
+  s = s.replace(/[^A-Za-z0-9-]+/g, "").replace(/-{2,}/g, "-").replace(/^-+|-+$/g, "").toLowerCase();
+  return s || "feature";
+}
+
+function extractJSON(text) {
+  let s = String(text).trim();
+  s = s.replace(/^```[a-zA-Z]*\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+  const start = Math.min(...["{", "["].map(c => { const i = s.indexOf(c); return i < 0 ? Infinity : i; }));
+  if (!isFinite(start)) throw new Error("No JSON found in the response");
+  const open = s[start], close = open === "{" ? "}" : "]";
+  const end = s.lastIndexOf(close);
+  if (end <= start) throw new Error("Unbalanced JSON in the response");
+  return JSON.parse(s.slice(start, end + 1));
+}
+
+function stripReviewerNotes(md) { return String(md).replace(NOTE_RE, ""); }
+
+function insertReviewerNotes(md, notes) {
+  const lines = String(md).split("\n");
+  const pending = [];
+  const oneLine = (v) => String(v || "").replace(/\s*\n\s*/g, " ").trim();
+  for (let ni = 0; ni < notes.length; ni++) {
+    const n = notes[ni];
+    // note_id must match the strip regex (RN-\d+) or the note would survive a "clean" export
+    const nid = /^RN-\d+$/.test(n.note_id || "") ? n.note_id : "RN-" + String(ni + 1).padStart(2, "0");
+    const block = [
+      `> [!WARNING] REVIEWER'S NOTE (${nid})`,
+      `> **Risk:** ${oneLine(n.risk)}`,
+      `> **Option A:** ${oneLine(n.fix_a)}`,
+      `> **Option B:** ${oneLine(n.fix_b)}`, ""
+    ];
+    const secNum = (String(n.section || "").match(/\d+(?:\.\d+)*/) || [null])[0];
+    const secText = String(n.section || "").toLowerCase();
+    let idx = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (!/^#{1,4}\s/.test(lines[i])) continue;
+      const h = lines[i].toLowerCase();
+      if ((secNum && h.includes(secNum)) || (secText && secText.length > 3 && h.includes(secText.slice(0, 24)))) { idx = i; break; }
+    }
+    if (idx < 0) { pending.push(block); continue; }
+    let at = idx + 1;
+    if (lines[at] === "") at++;
+    lines.splice(at, 0, ...block);
+  }
+  if (pending.length) {
+    lines.push("", "## Reviewer Notes (unplaced)", "");
+    pending.forEach(b => lines.push(...b));
+  }
+  return lines.join("\n");
+}
+
+/* minimal JSON-Schema validator: covers the subset the brief schema uses */
+function validateAgainstSchema(data, schema, root, path) {
+  root = root || schema; path = path || "$";
+  const errs = [];
+  let sc = schema;
+  if (sc.$ref) {
+    const name = sc.$ref.split("/").pop();
+    sc = (root.$defs || {})[name] || {};
+  }
+  const typeOf = (v) => Array.isArray(v) ? "array" : v === null ? "null" : typeof v;
+  if (sc.type) {
+    const ty = typeOf(data);
+    const want = sc.type === "boolean" ? "boolean" : sc.type;
+    if (!(ty === want || (want === "number" && ty === "number"))) { errs.push(`${path}: expected ${want}, got ${ty}`); return errs; }
+  }
+  if (sc.enum && !sc.enum.includes(data)) errs.push(`${path}: "${data}" not in allowed values`);
+  if (sc.pattern && typeof data === "string" && !(new RegExp(sc.pattern)).test(data)) errs.push(`${path}: does not match ${sc.pattern}`);
+  if (sc.minLength && typeof data === "string" && data.length < sc.minLength) errs.push(`${path}: empty string`);
+  if (sc.type === "object" && data && typeof data === "object") {
+    for (const req of sc.required || []) if (!(req in data)) errs.push(`${path}: missing required "${req}"`);
+    for (const [k, v] of Object.entries(data)) {
+      if (sc.properties && sc.properties[k]) errs.push(...validateAgainstSchema(v, sc.properties[k], root, `${path}.${k}`));
+      else if (sc.additionalProperties === false && sc.properties) errs.push(`${path}: unexpected property "${k}"`);
+    }
+  }
+  if (sc.type === "array" && Array.isArray(data)) {
+    if (sc.minItems && data.length < sc.minItems) errs.push(`${path}: needs at least ${sc.minItems} item(s)`);
+    if (sc.uniqueItems && new Set(data.map(x => JSON.stringify(x))).size !== data.length) errs.push(`${path}: duplicate items`);
+    if (sc.items) data.forEach((v, i) => errs.push(...validateAgainstSchema(v, sc.items, root, `${path}[${i}]`)));
+  }
+  return errs;
+}
+
+/* ---------------- markdown renderer ---------------- */
+function inlineMd(s) {
+  return s
+    .replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+function mdToHtml(md) {
+  const src = String(md).replace(/\r\n/g, "\n").split("\n");
+  const out = [];
+  let i = 0, inCode = false, codeBuf = [], listStack = [];
+  const closeLists = () => { while (listStack.length) out.push(`</${listStack.pop()}>`); };
+  while (i < src.length) {
+    const line = src[i];
+    if (/^```/.test(line)) {
+      if (!inCode) { closeLists(); inCode = true; codeBuf = []; }
+      else { out.push(`<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`); inCode = false; }
+      i++; continue;
+    }
+    if (inCode) { codeBuf.push(line); i++; continue; }
+
+    const h = line.match(/^(#{1,6})\s+(.*)$/);
+    if (h) { closeLists(); out.push(`<h${h[1].length}>${inlineMd(esc(h[2]))}</h${h[1].length}>`); i++; continue; }
+    if (/^\s*(---+|\*\*\*+)\s*$/.test(line)) { closeLists(); out.push("<hr>"); i++; continue; }
+
+    if (/^\s*>/.test(line)) {
+      closeLists();
+      const quote = [];
+      while (i < src.length && /^\s*>/.test(src[i])) { quote.push(src[i].replace(/^\s*>\s?/, "")); i++; }
+      out.push(`<blockquote>${quote.map(q => `<p>${inlineMd(esc(q))}</p>`).join("")}</blockquote>`);
+      continue;
+    }
+
+    if (/^\s*\|/.test(line) && i + 1 < src.length && /^\s*\|[\s|:-]+\|?\s*$/.test(src[i + 1])) {
+      closeLists();
+      const cells = (l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => inlineMd(esc(c.trim())));
+      const head = cells(line);
+      i += 2;
+      const rows = [];
+      while (i < src.length && /^\s*\|/.test(src[i])) { rows.push(cells(src[i])); i++; }
+      out.push("<table><thead><tr>" + head.map(c => `<th>${c}</th>`).join("") + "</tr></thead><tbody>" +
+        rows.map(r => "<tr>" + r.map(c => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody></table>");
+      continue;
+    }
+
+    const li = line.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+    if (li) {
+      const kind = /\d/.test(li[2]) ? "ol" : "ul";
+      if (listStack[listStack.length - 1] !== kind) { closeLists(); out.push(`<${kind}>`); listStack.push(kind); }
+      out.push(`<li>${inlineMd(esc(li[3]))}</li>`);
+      i++; continue;
+    }
+
+    if (line.trim() === "") { closeLists(); i++; continue; }
+    closeLists();
+    out.push(`<p>${inlineMd(esc(line))}</p>`);
+    i++;
+  }
+  if (inCode) out.push(`<pre><code>${esc(codeBuf.join("\n"))}</code></pre>`);
+  closeLists();
+  return out.join("\n");
+}
+
+/* ---------------- Anthropic API ---------------- */
+function anthHeaders() {
+  const s = getSettings();
+  return {
+    "x-api-key": s.apiKey || "",
+    "anthropic-version": "2023-06-01",
+    "anthropic-dangerous-direct-browser-access": "true",
+    "content-type": "application/json"
+  };
+}
+
+async function listModels() {
+  const r = await fetch("https://api.anthropic.com/v1/models?limit=100", { headers: anthHeaders() });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j = await r.json();
+  return (j.data || []).map(m => m.id);
+}
+
+async function readSseStream(resp, onDelta) {
+  const reader = resp.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "", text = "", stopReason = null;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    const parts = buf.split("\n");
+    buf = parts.pop();
+    for (const ln of parts) {
+      if (!ln.startsWith("data:")) continue;
+      let ev;
+      try { ev = JSON.parse(ln.slice(5)); } catch { continue; }
+      if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") {
+        text += ev.delta.text;
+        if (onDelta) onDelta(ev.delta.text, text);
+      } else if (ev.type === "message_start" && ev.message && ev.message.usage) {
+        state.usage.input += ev.message.usage.input_tokens || 0;
+      } else if (ev.type === "message_delta") {
+        if (ev.usage) state.usage.lastOut = ev.usage.output_tokens || 0;
+        if (ev.delta && ev.delta.stop_reason) stopReason = ev.delta.stop_reason;
+      } else if (ev.type === "error") {
+        const etype = (ev.error || {}).type || "";
+        const err = new Error((ev.error || {}).message || "stream error");
+        if (etype === "overloaded_error" || etype === "api_error") err.retryable = true;
+        throw err;
+      }
+    }
+  }
+  state.usage.output += state.usage.lastOut || 0;
+  state.usage.lastOut = 0;
+  renderUsage();
+  return { text, stopReason };
+}
+
+async function callClaude({ system, messages, onDelta }) {
+  const s = getSettings();
+  if (!s.apiKey) throw new Error(t("needKey"));
+  const body = {
+    model: s.model || FALLBACK_MODELS[0],
+    max_tokens: Math.min(Math.max(parseInt(s.maxTokens, 10) || 8192, 1024), 64000),
+    stream: true, system, messages
+  };
+  const RETRYABLE = [408, 409, 429, 529];
+  let lastErr = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, (lastErr && lastErr.waitMs) || attempt * 3000));
+    let resp;
+    try {
+      resp = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST", headers: anthHeaders(), body: JSON.stringify(body)
+      });
+    } catch (e) { lastErr = e; continue; }
+    if (RETRYABLE.includes(resp.status) || resp.status >= 500) {
+      lastErr = new Error(`HTTP ${resp.status}`);
+      const ra = parseFloat(resp.headers.get("retry-after"));
+      lastErr.waitMs = Math.min(Math.max(isNaN(ra) ? 0 : ra * 1000, (attempt + 1) * 3000), 60000);
+      continue;
+    }
+    if (!resp.ok) {
+      let msg = `HTTP ${resp.status}`;
+      try { msg += ": " + ((await resp.json()).error || {}).message; } catch {}
+      if (resp.status === 400 && /max_tokens/i.test(msg)) msg += " — " + t("lowerMaxTok");
+      throw new Error(msg);
+    }
+    try {
+      const { text, stopReason } = await readSseStream(resp, onDelta);
+      if (stopReason === "max_tokens") throw Object.assign(new Error(t("truncated")), { fatal: true });
+      return text;
+    } catch (e) {
+      if (!e.fatal && e.retryable && attempt < 2) { lastErr = e; continue; }
+      throw e;
+    }
+  }
+  throw lastErr || new Error("request failed");
+}
+
+function renderUsage() {
+  $("#usageTotals").textContent =
+    state.usage.input + state.usage.output > 0
+      ? `↑${state.usage.input.toLocaleString()} ↓${state.usage.output.toLocaleString()} ${t("tokensUsed")}`
+      : "";
+}
+
+/* ---------------- GitHub API ---------------- */
+function ghHeaders() {
+  const s = getSettings();
+  const h = { "Accept": "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+  if (s.ghToken) h["Authorization"] = "Bearer " + s.ghToken;
+  return h;
+}
+async function ghFetchRaw(repo, branch, path) {
+  const r = await fetch(`https://api.github.com/repos/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`,
+    { headers: Object.assign({}, ghHeaders(), { "Accept": "application/vnd.github.raw+json" }) });
+  if (!r.ok) throw new Error(`GitHub ${r.status} for ${path}`);
+  return r.text();
+}
+function utf8b64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+async function ghPutFile(repo, branch, path, content, message) {
+  const url = `https://api.github.com/repos/${repo}/contents/${encodeURI(path)}`;
+  let sha;
+  const probe = await fetch(`${url}?ref=${encodeURIComponent(branch)}`, { headers: ghHeaders() });
+  if (probe.ok) sha = (await probe.json()).sha;
+  const body = { message, branch, content: utf8b64(content) };
+  if (sha) body.sha = sha;
+  const r = await fetch(url, { method: "PUT", headers: Object.assign({ "content-type": "application/json" }, ghHeaders()), body: JSON.stringify(body) });
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  return (await r.json()).content.html_url;
+}
+
+/* ---------------- prompt loading ---------------- */
+function loadEmbeddedPrompts() {
+  const el = document.getElementById("prompt-data");
+  const data = JSON.parse(el.textContent);
+  return data.__placeholder__ ? null : data;
+}
+async function initPrompts(statusEl) {
+  const s = getSettings();
+  const embedded = loadEmbeddedPrompts();
+  PROMPTS = embedded;
+  if (s.freshPrompts || !embedded) {
+    try {
+      const fresh = {};
+      await Promise.all(Object.entries(PROMPT_PATHS).map(async ([k, p]) => {
+        fresh[k] = await ghFetchRaw(PROMPT_REPO.repo, PROMPT_REPO.branch, p);
+      }));
+      PROMPTS = fresh;
+      if (statusEl) statusEl.textContent = t("promptsFresh");
+      return;
+    } catch (e) {
+      if (!embedded) throw new Error("Cannot load prompts (offline + unbuilt file): " + e.message);
+    }
+  }
+  if (statusEl) statusEl.textContent = t("promptsEmbedded");
+}
+const schemaObj = () => JSON.parse(PROMPTS.input_schema);
+
+/* ---------------- prompt builders ---------------- */
+const INLINE_NOTE = "\n\n---\nNote: every standards document this skill references is included inline in this prompt. Do not attempt to read files.";
+function sysRouter() {
+  return PROMPTS.input_router +
+    "\n\n---\n## User Story standards (rule 6 requires these before extracting User_Story_Candidates)\n\n" +
+    PROMPTS.user_story +
+    "\n\n---\n## Web session contract\n" +
+    "- This pipeline runs from a local web app; the app handles saving and exporting files itself. Set \"Delivery_Mode\" to \"CHAT_TEXT_ONLY\" and \"Output_Artifacts\" to [\"Markdown File\"].\n" +
+    `- Set "Active_Sections" to exactly this list: ${JSON.stringify(state.sections)}\n` +
+    `- Set "Diagram_Requirements" to exactly this list: ${JSON.stringify(state.diagrams.length ? state.diagrams : ["None"])}\n` +
+    "- Set \"Clarification_Confirmed\" to false.\n" +
+    "- The output MUST be a single JSON object that validates against this JSON Schema (a contract, not an example):\n\n" +
+    PROMPTS.input_schema + "\n\nReturn ONLY the JSON object.";
+}
+function sysClarifyQuestions() {
+  return "You are the PRD pipeline orchestrator at Step 1.5 (clarification gate). " +
+    "Given the approved brief JSON, write a concise numbered list of clarification questions covering every field that contains \"" + NEEDS + "\". " +
+    "Prefix each question with the JSON field name in [brackets]. Group related questions. Match the language of the brief content. " +
+    "Output only the numbered list. If no field contains the marker, output exactly: NO_GAPS";
+}
+function sysClarifyUpdate() {
+  return "You are the PRD pipeline orchestrator updating the brief JSON with the user's clarification answers.\n" +
+    "Rules:\n- Only change fields that the answers actually address; keep every unanswered field as \"" + NEEDS + "\".\n" +
+    "- Do not invent details.\n- Keep \"Clarification_Confirmed\" as false; the app flips it after explicit user approval.\n" +
+    "- The result MUST still validate against this schema:\n\n" + PROMPTS.input_schema + "\n\nReturn ONLY the updated JSON object.";
+}
+function sysFraming() {
+  return PROMPTS.product_framing +
+    "\n\n---\n## User Story standards (apply strictly)\n\n" + PROMPTS.user_story +
+    "\n\n---\nWeb session: return the Product Framing Pack as Markdown only. Do not mention files." + INLINE_NOTE;
+}
+function sysDraft() {
+  return PROMPTS.template_skill +
+    "\n\n---\n## PRD Template (fill this exactly)\n\n" + PROMPTS.prd_template +
+    "\n\n---\n## Web session contract\n" +
+    "- Return ONLY the completed PRD Markdown, no commentary before or after.\n" +
+    "- Apply the Active_Sections gate from the brief strictly.\n" +
+    "- If diagram code blocks are provided in the input, embed them verbatim in Section 3.3. " +
+    "If Diagram_Requirements is [\"None\"], keep Section 3.3 and state: No diagrams requested for this PRD." + INLINE_NOTE;
+}
+function sysDiagram() {
+  return PROMPTS.diagram_writer +
+    "\n\n---\nThis is a PRD pipeline call: output only the requested fenced code block(s), no prose, no offers.";
+}
+function sysReviewer(pass, prevNotes) {
+  let s = PROMPTS.reviewer + "\n\n---\nReturn ONLY the JSON array, nothing else.";
+  if (pass > 1) {
+    s += `\n\nThis is review pass ${pass}. Previous notes:\n` + JSON.stringify(prevNotes) +
+      "\nOnly flag issues introduced by the latest edit or still unresolved. Do not re-list resolved notes.";
+  }
+  return s;
+}
+function sysApplyEdits() {
+  return "You are updating a PRD draft that is in the final approval loop.\n" +
+    "Apply the user's requested edits to the draft. Keep the template structure, the `Done when` acceptance-criteria format, " +
+    "and the single-sentence JTBD job story format. Do not add reviewer note callouts; the app manages them. " +
+    "Do not invent business rules beyond what the user asked. Return ONLY the full updated PRD Markdown.";
+}
+
+/* ---------------- UI plumbing ---------------- */
+const STEP_KEYS = ["s0", "s1", "s15", "s2", "s3", "s4", "s5", "s6"];
+function renderStepsBar(activeIdx) {
+  const bar = $("#stepsBar");
+  bar.innerHTML = "";
+  t("stepNames").forEach((name, i) => {
+    const li = document.createElement("li");
+    li.textContent = name;
+    if (i < activeIdx) li.className = "done";
+    if (i === activeIdx) li.className = "active";
+    bar.appendChild(li);
+  });
+}
+function addCard(id, title, sub) {
+  const div = document.createElement("div");
+  div.className = "card";
+  div.id = id;
+  div.innerHTML = `<div class="headrow"><h2>${esc(title)}</h2><span class="badge" data-role="badge"></span></div>
+    <p class="sub">${esc(sub)}</p><div class="body"></div>`;
+  $("#flow").appendChild(div);
+  div.scrollIntoView({ behavior: "smooth", block: "start" });
+  return div;
+}
+function setBadge(card, text, cls) {
+  const b = $('[data-role="badge"]', card);
+  b.textContent = text || "";
+  b.className = "badge" + (cls ? " " + cls : "");
+}
+function collapseCard(card) { card.classList.add("collapsed"); }
+function streamBox(parent) {
+  const pre = document.createElement("pre");
+  pre.className = "stream";
+  parent.appendChild(pre);
+  return pre;
+}
+function statusLine(parent) {
+  const d = document.createElement("div");
+  d.className = "status";
+  parent.appendChild(d);
+  return d;
+}
+async function runStreamed(card, system, messages, label) {
+  const body = $(".body", card);
+  const pre = streamBox(body);
+  setBadge(card, `${t("working")}…`, "warn");
+  pre.innerHTML = `<span class="spin"></span> ${esc(label || t("working"))}…`;
+  let started = false;
+  const text = await callClaude({
+    system, messages,
+    onDelta: (_, full) => {
+      if (!started) { started = true; }
+      pre.textContent = full;
+      pre.scrollTop = pre.scrollHeight;
+    }
+  });
+  return { pre, text };
+}
+
+/* ---------------- pipeline steps ---------------- */
+function step0() {
+  renderStepsBar(0);
+  const card = addCard("card-s0", t("s0Title"), t("s0Sub"));
+  const body = $(".body", card);
+  body.innerHTML = `
+    <label>${esc(t("rawLabel"))}</label>
+    <textarea id="rawInput" class="tall" placeholder="${esc(t("rawPh"))}"></textarea>
+    <label>${esc(t("diagramsLabel"))}</label>
+    <div class="checks" id="diagChecks"></div>
+    <label>${esc(t("sectionsLabel"))}</label>
+    <div class="checks" id="secChecks"></div>
+    <div class="actions"><button class="primary" id="startBtn">${esc(t("startBtn"))}</button>
+    <span class="status" id="s0Status"></span></div>`;
+  DIAGRAM_TYPES.forEach(d => {
+    $("#diagChecks", body).insertAdjacentHTML("beforeend",
+      `<label><input type="checkbox" value="${esc(d)}"> ${esc(d)}${d === "BPMN" ? " ⚠️" : ""}</label>`);
+  });
+  $("#diagChecks", body).insertAdjacentHTML("afterend", `<div class="hint">${esc(t("bpmnWarn"))}</div>`);
+  ALL_SECTIONS.forEach(sec => {
+    $("#secChecks", body).insertAdjacentHTML("beforeend",
+      `<label><input type="checkbox" value="${esc(sec)}" checked> ${esc(sec)}</label>`);
+  });
+  $("#startBtn", body).onclick = async () => {
+    const raw = $("#rawInput", body).value.trim();
+    const st = $("#s0Status", body);
+    if (!getSettings().apiKey) { st.textContent = t("needKey"); st.className = "status err"; $("#settingsDlg").showModal(); return; }
+    if (!raw) { st.textContent = t("needRaw"); st.className = "status err"; return; }
+    state.raw = raw;
+    state.diagrams = [...body.querySelectorAll("#diagChecks input:checked")].map(c => c.value);
+    state.sections = [...body.querySelectorAll("#secChecks input:checked")].map(c => c.value);
+    if (!state.sections.length) state.sections = ALL_SECTIONS.slice();
+    $("#startBtn", body).disabled = true;
+    setBadge(card, "✓", "ok");
+    collapseCard(card);
+    step1([{ role: "user", content: state.raw }]);
+  };
+}
+
+async function step1(messages) {
+  renderStepsBar(1);
+  const card = addCard("card-s1-" + Date.now(), t("s1Title"), t("s1Sub"));
+  const body = $(".body", card);
+  try {
+    const { pre, text } = await runStreamed(card, sysRouter(), messages, t("working"));
+    let brief = extractJSON(text);
+    pre.remove();
+    const errs = validateAgainstSchema(brief, schemaObj());
+    body.insertAdjacentHTML("beforeend", `
+      <textarea id="briefBox" class="tall" spellcheck="false"></textarea>
+      <div class="status ${errs.length ? "err" : "ok"}" id="valStatus"></div>
+      <textarea id="fbBox" placeholder="${esc(t("feedbackPh"))}" style="min-height:60px"></textarea>
+      <div class="actions">
+        <button class="primary" id="approveBtn">${esc(t("approve"))}</button>
+        <button id="regenBtn">${esc(t("regenerate"))}</button>
+      </div>`);
+    const box = $("#briefBox", body);
+    box.value = JSON.stringify(brief, null, 2);
+    const valStatus = $("#valStatus", body);
+    const runVal = () => {
+      try {
+        const obj = JSON.parse(box.value);
+        const e = validateAgainstSchema(obj, schemaObj());
+        valStatus.textContent = e.length ? `${t("validationFail")}: ${e.slice(0, 3).join(" · ")}` : t("validationOk");
+        valStatus.className = "status " + (e.length ? "err" : "ok");
+        return e.length ? null : obj;
+      } catch (err) {
+        valStatus.textContent = "JSON: " + err.message; valStatus.className = "status err"; return null;
+      }
+    };
+    runVal();
+    box.addEventListener("input", runVal);
+    $("#approveBtn", body).onclick = () => {
+      const obj = runVal();
+      if (!obj) return;
+      state.brief = obj;
+      // the approved brief is the contract: user edits to sections/diagrams win over Step 0 picks
+      state.sections = obj.Active_Sections.slice();
+      state.diagrams = (obj.Diagram_Requirements || []).filter(d => d !== "None");
+      setBadge(card, "✓", "ok"); collapseCard(card);
+      step15();
+    };
+    $("#regenBtn", body).onclick = () => {
+      const fb = $("#fbBox", body).value.trim() || "Please regenerate the brief more carefully.";
+      collapseCard(card);
+      step1([...messages, { role: "assistant", content: box.value }, { role: "user", content: fb }]);
+    };
+  } catch (e) { failCard(card, e, () => step1(messages)); }
+}
+
+async function step15() {
+  renderStepsBar(2);
+  const card = addCard("card-s15-" + Date.now(), t("s15Title"), t("s15Sub"));
+  const body = $(".body", card);
+  const briefStr = JSON.stringify(state.brief, null, 2);
+  const finish = () => {
+    state.brief.Clarification_Confirmed = true;
+    setBadge(card, "✓", "ok"); collapseCard(card);
+    step2([]);
+  };
+  if (!briefStr.includes(NEEDS)) {
+    body.innerHTML = `<p>${esc(t("noGaps"))}</p><div class="actions"><button class="primary" id="okBtn">${esc(t("confirmBrief"))}</button></div>`;
+    $("#okBtn", body).onclick = finish;
+    return;
+  }
+  try {
+    const { pre, text } = await runStreamed(card, sysClarifyQuestions(), [{ role: "user", content: briefStr }]);
+    pre.remove();
+    if (text.trim() === "NO_GAPS") {
+      body.innerHTML = `<p>${esc(t("noGaps"))}</p><div class="actions"><button class="primary" id="okBtn">${esc(t("confirmBrief"))}</button></div>`;
+      $("#okBtn", body).onclick = finish;
+      return;
+    }
+    body.insertAdjacentHTML("beforeend", `
+      <div class="md">${mdToHtml(text)}</div>
+      <textarea id="ansBox" placeholder="${esc(t("answersPh"))}"></textarea>
+      <div class="actions">
+        <button class="primary" id="ansBtn">${esc(t("submitAnswers"))}</button>
+        <button id="tbdBtn">${esc(t("keepTbd"))}</button>
+      </div>`);
+    $("#tbdBtn", body).onclick = finish;
+    $("#ansBtn", body).onclick = async () => {
+      const ans = $("#ansBox", body).value.trim();
+      if (!ans) return;
+      $("#ansBtn", body).disabled = true;
+      try {
+        const { pre: p2, text: t2 } = await runStreamed(card, sysClarifyUpdate(),
+          [{ role: "user", content: `Brief JSON:\n${briefStr}\n\nQuestions:\n${text}\n\nUser answers:\n${ans}` }]);
+        const updated = extractJSON(t2);
+        p2.remove();
+        const errs = validateAgainstSchema(updated, schemaObj());
+        if (errs.length) throw new Error(errs.slice(0, 3).join(" · "));
+        state.brief = updated;
+        body.insertAdjacentHTML("beforeend",
+          `<pre class="stream">${esc(JSON.stringify(updated, null, 2))}</pre>
+           <div class="actions"><button class="primary" id="confBtn">${esc(t("confirmBrief"))}</button></div>`);
+        $("#confBtn", body).onclick = finish;
+      } catch (e) {
+        $("#ansBtn", body).disabled = false;
+        statusLine(body).textContent = `${t("callFailed")}: ${e.message}`;
+      }
+    };
+  } catch (e) { failCard(card, e, step15); }
+}
+
+async function step2(history) {
+  renderStepsBar(3);
+  const card = addCard("card-s2-" + Date.now(), t("s2Title"), t("s2Sub"));
+  const body = $(".body", card);
+  const baseMsg = { role: "user", content: `Approved brief JSON:\n${JSON.stringify(state.brief, null, 2)}\n\nRaw input:\n${state.raw}` };
+  const messages = [baseMsg, ...history];
+  try {
+    const { pre, text } = await runStreamed(card, sysFraming(), messages);
+    pre.remove();
+    state.framing = text;
+    body.insertAdjacentHTML("beforeend", `
+      <div class="md">${mdToHtml(text)}</div>
+      <textarea id="fb2" placeholder="${esc(t("feedbackPh"))}" style="min-height:60px"></textarea>
+      <div class="actions">
+        <button class="primary" id="ap2">${esc(t("approve"))}</button>
+        <button id="rq2">${esc(t("requestChanges"))}</button>
+      </div>`);
+    $("#ap2", body).onclick = () => { setBadge(card, "✓", "ok"); collapseCard(card); step3(); };
+    $("#rq2", body).onclick = () => {
+      const fb = $("#fb2", body).value.trim();
+      if (!fb) return;
+      collapseCard(card);
+      step2([...history, { role: "assistant", content: text }, { role: "user", content: fb }]);
+    };
+  } catch (e) { failCard(card, e, () => step2(history)); }
+}
+
+async function step3() {
+  renderStepsBar(4);
+  const card = addCard("card-s3-" + Date.now(), t("s3Title"), t("s3Sub"));
+  const body = $(".body", card);
+  try {
+    const diagramWanted = state.sections.includes("Process Diagrams") &&
+      (state.brief.Diagram_Requirements || []).filter(d => d !== "None");
+    let diagramBlocks = "";
+    if (diagramWanted && diagramWanted.length) {
+      for (const dt of diagramWanted) {
+        const st = statusLine(body);
+        st.innerHTML = `<span class="spin"></span> ${esc(t("genDiagram"))}: ${esc(dt)}…`;
+        const dText = await callClaude({
+          system: sysDiagram(),
+          messages: [{
+            role: "user", content:
+              `diagram_type: ${dt}\nfeature_name: ${state.brief.Feature_Name}\n` +
+              `actors: ${JSON.stringify(state.brief.Target_Users)}\n` +
+              `components: ${JSON.stringify(state.brief.API_or_Integration_Notes)}\n` +
+              `happy_path: ${JSON.stringify(state.brief.User_Flow)}\n` +
+              `edge_cases: ${JSON.stringify(state.brief.Business_Logic_and_Rules)}`
+          }]
+        });
+        diagramBlocks += `\n\n### ${dt}\n\n${dText.trim()}\n`;
+        st.textContent = `✓ ${dt}`;
+        st.className = "status ok";
+      }
+    }
+    const userMsg =
+      `Approved brief JSON:\n${JSON.stringify(state.brief, null, 2)}\n\n` +
+      `Approved Product Framing Pack (source of truth for sections 2.2 and 3.1):\n${state.framing}` +
+      (diagramBlocks ? `\n\nDiagram code to embed verbatim in Section 3.3:\n${diagramBlocks}` : "");
+    const { pre, text } = await runStreamed(card, sysDraft(), [{ role: "user", content: userMsg }]);
+    state.draft = text.trim();
+    pre.remove();
+    setBadge(card, "✓", "ok"); collapseCard(card);
+    step4();
+  } catch (e) { failCard(card, e, step3); }
+}
+
+async function step4() {
+  renderStepsBar(5);
+  const passNo = state.reviewPass + 1;
+  const card = addCard("card-s4-" + Date.now(), `${t("s4Title")} (pass ${passNo})`, t("s4Sub"));
+  const body = $(".body", card);
+  try {
+    let notes = null, invalid = false;
+    for (let attempt = 0; attempt < 2 && notes === null; attempt++) {
+      const { pre, text } = await runStreamed(card, sysReviewer(passNo, state.notes),
+        [{ role: "user", content: state.draft }]);
+      try {
+        const parsed = extractJSON(text);
+        if (Array.isArray(parsed)) notes = parsed;
+      } catch { /* one retry, per pipeline rule */ }
+      if (notes !== null || attempt === 0) pre.remove();
+      if (notes === null && attempt === 1) {
+        // spec: surface the raw reviewer output instead of silently dropping it
+        invalid = true;
+        statusLine(body).textContent = t("reviewerInvalid");
+        notes = [];
+      }
+    }
+    state.reviewPass = passNo; // failed calls (thrown above) never reach here, so they don't consume passes
+    state.notes = notes;
+    state.reviewedDraft = notes.length ? insertReviewerNotes(state.draft, notes) : state.draft;
+    const msg = notes.length ? `${notes.length} ${t("notesFound")}` : t("noNotes");
+    body.insertAdjacentHTML("beforeend", `<div class="status ${notes.length ? "" : "ok"}">${esc(msg)}</div>`);
+    setBadge(card, notes.length ? String(notes.length) : invalid ? "!" : "✓", notes.length || invalid ? "warn" : "ok");
+    if (!invalid) collapseCard(card);
+    step5();
+  } catch (e) { failCard(card, e, step4); }
+}
+
+function step5() {
+  renderStepsBar(6);
+  const card = addCard("card-s5-" + Date.now(), t("s5Title"), t("s5Sub"));
+  const body = $(".body", card);
+  const capped = state.reviewPass >= 3;
+  body.innerHTML = `
+    <div class="md" id="printTarget">${mdToHtml(state.reviewedDraft)}</div>
+    ${capped ? `<div class="status err">${esc(t("loopCap"))}</div>` : ""}
+    <textarea id="fb5" placeholder="${esc(t("feedbackPh"))}" style="min-height:60px"></textarea>
+    <div class="actions">
+      <button class="primary" id="ap5">${esc(t("approveFinal"))}</button>
+      <button id="sub5">${esc(t("substantive"))}</button>
+      <button id="cos5">${esc(t("cosmetic"))}</button>
+    </div>`;
+  $("#ap5", body).onclick = () => { setBadge(card, "✓", "ok"); collapseCard(card); step6(); };
+  const apply = async (rereview) => {
+    const fb = $("#fb5", body).value.trim();
+    if (!fb) return;
+    ["ap5", "sub5", "cos5"].forEach(id => $("#" + id, body).disabled = true);
+    try {
+      const { pre, text } = await runStreamed(card, sysApplyEdits(),
+        [{ role: "user", content: `Current draft:\n\n${stripReviewerNotes(state.reviewedDraft)}\n\nRequested edits:\n${fb}` }]);
+      pre.remove();
+      state.draft = text.trim();
+      collapseCard(card);
+      // past the 3-pass cap, one more review pass needs an explicit user override — never a silent skip
+      if (rereview && (!capped || confirm(t("capConfirm")))) step4();
+      else { state.reviewedDraft = insertReviewerNotes(state.draft, state.notes); step5(); }
+    } catch (e) {
+      ["ap5", "sub5", "cos5"].forEach(id => $("#" + id, body).disabled = false);
+      statusLine(body).textContent = `${t("callFailed")}: ${e.message}`;
+    }
+  };
+  $("#sub5", body).onclick = () => apply(true);
+  $("#cos5", body).onclick = () => apply(false);
+}
+
+function step6() {
+  renderStepsBar(7);
+  const card = addCard("card-s6", t("s6Title"), t("s6Sub"));
+  const body = $(".body", card);
+  const s = getSettings();
+  const fname = featureFileName(state.brief.Feature_Name);
+  const domain = state.brief.Domain_Name || "general";
+  body.innerHTML = `
+    <label class="inline-check"><input type="checkbox" id="keepNotes"> ${esc(t("keepNotes"))}</label>
+    <div class="actions">
+      <button class="primary" id="dlMd">${esc(t("dlMd"))}</button>
+      <button id="dlDoc">${esc(t("dlDoc"))}</button>
+      <button id="cpMd">${esc(t("copyMd"))}</button>
+      <button id="prBtn">${esc(t("printBtn"))}</button>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    ${s.ghRepo
+      ? `<label class="inline-check"><input type="checkbox" id="alsoInputs" checked> ${esc(t("alsoInputs"))}</label>
+         <div class="actions"><button class="primary" id="ghBtn">${esc(t("ghSave"))} → ${esc(s.ghRepo)}</button></div>`
+      : `<div class="status">${esc(t("ghNoCfg"))}</div>`}
+    <div class="status" id="exStatus"></div>
+    <div class="actions"><button id="againBtn">${esc(t("startOver"))}</button></div>`;
+  const finalMd = () => $("#keepNotes", body).checked ? state.reviewedDraft : stripReviewerNotes(state.reviewedDraft);
+  const dl = (name, blob) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  };
+  $("#dlMd", body).onclick = () => dl(`${fname}_PRD.md`, new Blob([finalMd()], { type: "text/markdown" }));
+  $("#dlDoc", body).onclick = () => {
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word">
+<head><meta charset="utf-8"><title>${esc(state.brief.Feature_Name)}</title></head>
+<body style="font-family:Calibri,Arial,sans-serif">${mdToHtml(finalMd())}</body></html>`;
+    dl(`${fname}_PRD.doc`, new Blob([html], { type: "application/msword" }));
+  };
+  $("#cpMd", body).onclick = async () => {
+    await navigator.clipboard.writeText(finalMd());
+    $("#exStatus", body).textContent = t("copied");
+    $("#exStatus", body).className = "status ok";
+  };
+  $("#prBtn", body).onclick = () => window.print();
+  const gh = $("#ghBtn", body);
+  if (gh) gh.onclick = async () => {
+    const st = $("#exStatus", body);
+    gh.disabled = true;
+    st.innerHTML = `<span class="spin"></span> ${esc(t("ghSaving"))}…`; st.className = "status";
+    try {
+      const base = `domain-knowledge/${domain}`;
+      const urls = [];
+      urls.push(await ghPutFile(s.ghRepo, s.ghBranch || "main", `${base}/PRDs/${fname}_PRD.md`,
+        finalMd(), `Add PRD: ${state.brief.Feature_Name}`));
+      if ($("#alsoInputs", body) && $("#alsoInputs", body).checked) {
+        await ghPutFile(s.ghRepo, s.ghBranch || "main", `${base}/inputs/${fname}_input.json`,
+          JSON.stringify(state.brief, null, 2), `Add brief: ${state.brief.Feature_Name}`);
+        await ghPutFile(s.ghRepo, s.ghBranch || "main", `${base}/inputs/${fname}_framing.md`,
+          state.framing, `Add framing pack: ${state.brief.Feature_Name}`);
+      }
+      st.innerHTML = `${esc(t("ghSaved"))} <a href="${esc(urls[0])}" target="_blank" rel="noopener">${esc(urls[0])}</a>`;
+      st.className = "status ok";
+    } catch (e) {
+      st.textContent = `${t("callFailed")}: ${e.message}`; st.className = "status err";
+    } finally { gh.disabled = false; }
+  };
+  $("#againBtn", body).onclick = () => {
+    Object.assign(state, { raw: "", brief: null, framing: "", draft: "", reviewedDraft: "", notes: [], reviewPass: 0 });
+    $("#flow").innerHTML = "";
+    step0();
+  };
+}
+
+function failCard(card, err, retryFn) {
+  setBadge(card, "✗", "err");
+  const body = $(".body", card);
+  const st = statusLine(body);
+  st.className = "status err";
+  st.textContent = `${t("callFailed")}: ${err.message}`;
+  const b = document.createElement("button");
+  b.textContent = t("retry");
+  b.className = "small";
+  b.style.marginTop = "8px";
+  b.onclick = () => { card.remove(); retryFn(); };
+  body.appendChild(b);
+}
+
+/* ---------------- settings dialog ---------------- */
+function bindSettings() {
+  const dlg = $("#settingsDlg");
+  const s = getSettings();
+  $("#setKey").value = s.apiKey || "";
+  $("#setModel").value = s.model || FALLBACK_MODELS[0];
+  $("#setMaxTok").value = s.maxTokens || 8192;
+  $("#setGhToken").value = s.ghToken || "";
+  $("#setGhRepo").value = s.ghRepo || "";
+  $("#setGhBranch").value = s.ghBranch || "main";
+  $("#setFreshPrompts").checked = !!s.freshPrompts;
+  $("#modelList").innerHTML = FALLBACK_MODELS.map(m => `<option value="${m}">`).join("");
+
+  $("#settingsBtn").onclick = () => dlg.showModal();
+  const persist = () => saveSettings({
+    apiKey: $("#setKey").value.trim(),
+    model: $("#setModel").value.trim() || FALLBACK_MODELS[0],
+    maxTokens: parseInt($("#setMaxTok").value, 10) || 8192,
+    ghToken: $("#setGhToken").value.trim(),
+    ghRepo: $("#setGhRepo").value.trim(),
+    ghBranch: $("#setGhBranch").value.trim() || "main",
+    freshPrompts: $("#setFreshPrompts").checked
+  });
+  $("#settingsClose").onclick = () => { persist(); dlg.close(); };
+  dlg.addEventListener("close", persist);
+
+  $("#loadModelsBtn").onclick = async () => {
+    persist();
+    const st = $("#modelStatus");
+    st.textContent = "…";
+    try {
+      const models = await listModels();
+      $("#modelList").innerHTML = models.map(m => `<option value="${esc(m)}">`).join("");
+      st.textContent = `${models.length} models`;
+    } catch (e) { st.textContent = e.message; }
+  };
+  $("#ghTestBtn").onclick = async () => {
+    persist();
+    const st = $("#ghStatus");
+    st.textContent = "…";
+    try {
+      const cfg = getSettings();
+      if (cfg.ghToken) {
+        const r = await fetch("https://api.github.com/user", { headers: ghHeaders() });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        st.textContent = "✓ @" + (await r.json()).login;
+      } else if (cfg.ghRepo) {
+        const r = await fetch(`https://api.github.com/repos/${cfg.ghRepo}`, { headers: ghHeaders() });
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        st.textContent = "✓ " + (await r.json()).full_name + " (read-only)";
+      } else st.textContent = "no token / repo set";
+    } catch (e) { st.textContent = "✗ " + e.message; }
+  };
+}
+
+/* ---------------- i18n apply + boot ---------------- */
+function applyI18n() {
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
+  $("#langSel").value = LANG;
+}
+async function boot() {
+  applyI18n();
+  bindSettings();
+  renderUsage();
+  $("#langSel").onchange = (e) => {
+    LANG = e.target.value;
+    localStorage.setItem("prdw.lang", LANG);
+    location.reload();
+  };
+  const st = document.createElement("div");
+  st.className = "status";
+  st.style.margin = "0 0 10px";
+  $("main").insertBefore(st, $("#stepsBar"));
+  try { await initPrompts(st); } catch (e) { st.textContent = e.message; st.className = "status err"; return; }
+  step0();
+}
+
+/* test hooks for automated checks */
+window.PRD = { mdToHtml, extractJSON, validateAgainstSchema, stripReviewerNotes, insertReviewerNotes, featureFileName, utf8b64, get prompts() { return PROMPTS; }, state };
+
+boot();
+</script>
+</body>
+</html>
