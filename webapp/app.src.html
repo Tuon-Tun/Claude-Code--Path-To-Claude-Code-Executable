@@ -128,6 +128,15 @@
 <dialog id="settingsDlg">
   <h2 style="margin-top:0" data-i18n="settings"></h2>
 
+  <label data-i18n="provider"></label>
+  <select id="setProvider"></select>
+  <div class="hint" id="provHint"></div>
+
+  <div id="baseUrlRow" style="display:none">
+    <label data-i18n="baseUrl"></label>
+    <input type="text" id="setBaseUrl" placeholder="http://localhost:11434/v1">
+  </div>
+
   <label data-i18n="apiKey"></label>
   <input type="password" id="setKey" placeholder="sk-ant-...">
   <div class="hint" data-i18n="apiKeyHint"></div>
@@ -183,7 +192,13 @@ const I18N = {
   en: {
     tagline: "human-approved PRDs, no IDE required",
     settings: "Settings", save: "Save & close",
-    apiKey: "Anthropic API key", apiKeyHint: "Stored only in this browser (localStorage). Calls go directly from your browser to api.anthropic.com — no other server is involved.",
+    provider: "AI provider",
+    provHint_anthropic: "Pay-as-you-go API — create a key at console.anthropic.com. Best PRD quality.",
+    provHint_gemini: "Has a FREE tier (no card needed): create a key at aistudio.google.com/apikey. gemini-2.5-flash allows ~1,500 free requests/day — dozens of PRDs.",
+    provHint_openai: "Pay-as-you-go API — create a key at platform.openai.com.",
+    provHint_compatible: "Any OpenAI-compatible endpoint: Groq (free tier), OpenRouter, or local Ollama (base URL http://localhost:11434/v1 — free, fully private, key optional).",
+    baseUrl: "Base URL",
+    apiKey: "API key", apiKeyHint: "Stored only in this browser (localStorage). Calls go directly from your browser to the selected provider's API — no other server is involved.",
     model: "Model", loadModels: "Load my models", maxTokens: "Max output tokens",
     ghToken: "GitHub token (optional)", ghRepo: "GitHub repo to save PRDs (optional)", ghBranch: "Branch",
     ghHint: "With a repo configured you can save finished PRDs to domain-knowledge/<domain>/PRDs/ via the GitHub API. The token needs the “Contents: read & write” permission on that repo.",
@@ -243,7 +258,13 @@ const I18N = {
   vi: {
     tagline: "PRD chuẩn, không cần IDE",
     settings: "Cài đặt", save: "Lưu & đóng",
-    apiKey: "Anthropic API key", apiKeyHint: "Chỉ lưu trong trình duyệt này (localStorage). Mọi lệnh gọi đi thẳng từ trình duyệt của bạn tới api.anthropic.com — không qua máy chủ nào khác.",
+    provider: "Nhà cung cấp AI",
+    provHint_anthropic: "API trả phí theo lượng dùng — tạo key tại console.anthropic.com. Chất lượng PRD tốt nhất.",
+    provHint_gemini: "Có gói MIỄN PHÍ (không cần thẻ): tạo key tại aistudio.google.com/apikey. gemini-2.5-flash cho ~1.500 request miễn phí/ngày — đủ viết hàng chục PRD.",
+    provHint_openai: "API trả phí theo lượng dùng — tạo key tại platform.openai.com.",
+    provHint_compatible: "Mọi endpoint tương thích OpenAI: Groq (có gói free), OpenRouter, hoặc Ollama chạy trên máy bạn (base URL http://localhost:11434/v1 — miễn phí, riêng tư tuyệt đối, không cần key).",
+    baseUrl: "Base URL",
+    apiKey: "API key", apiKeyHint: "Chỉ lưu trong trình duyệt này (localStorage). Mọi lệnh gọi đi thẳng từ trình duyệt của bạn tới API của nhà cung cấp đã chọn — không qua máy chủ nào khác.",
     model: "Model", loadModels: "Tải danh sách model", maxTokens: "Max output tokens",
     ghToken: "GitHub token (tùy chọn)", ghRepo: "Repo GitHub để lưu PRD (tùy chọn)", ghBranch: "Branch",
     ghHint: "Khi cấu hình repo, bạn có thể lưu PRD hoàn chỉnh vào domain-knowledge/<domain>/PRDs/ qua GitHub API. Token cần quyền “Contents: read & write” trên repo đó.",
@@ -311,7 +332,26 @@ const ALL_SECTIONS = [
   "Functional Requirements", "Non-Functional Requirements", "UI/UX Specifications", "API / Technical Specs"
 ];
 const DIAGRAM_TYPES = ["Activity Diagram", "Sequence Diagram", "BPMN"];
-const FALLBACK_MODELS = ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"];
+const PROVIDERS = {
+  anthropic: {
+    name: "Anthropic Claude", defModel: "claude-sonnet-5",
+    models: ["claude-sonnet-5", "claude-opus-4-8", "claude-haiku-4-5-20251001"], keyPh: "sk-ant-..."
+  },
+  gemini: {
+    name: "Google Gemini (free tier)", defModel: "gemini-2.5-flash",
+    models: ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"], keyPh: "AIza..."
+  },
+  openai: {
+    name: "OpenAI", defModel: "gpt-5",
+    models: ["gpt-5", "gpt-5-mini", "gpt-4.1", "gpt-4o"], keyPh: "sk-..."
+  },
+  compatible: {
+    name: "OpenAI-compatible (Groq / OpenRouter / Ollama)", defModel: "",
+    models: ["llama-3.3-70b-versatile", "qwen3:32b"], keyPh: "(optional for local Ollama)"
+  }
+};
+const OPENAI_BASE = "https://api.openai.com/v1";
+const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
 const PROMPT_REPO = { repo: "Tuon-Tun/Claude-Code--Path-To-Claude-Code-Executable", branch: "main" };
 const PROMPT_PATHS = {
   input_router: "knowledge-base/input-router/SKILL.md",
@@ -336,9 +376,32 @@ const state = {
 
 /* ---------------- settings ---------------- */
 function getSettings() {
-  try { return JSON.parse(localStorage.getItem("prdw.settings") || "{}"); } catch { return {}; }
+  let s;
+  try { s = JSON.parse(localStorage.getItem("prdw.settings") || "{}"); } catch { s = {}; }
+  if (!s.provider || !s.keys) {
+    // migrate v1 settings (single Anthropic key) to the per-provider layout
+    s = {
+      provider: "anthropic",
+      keys: { anthropic: s.apiKey || "", gemini: "", openai: "", compatible: "" },
+      models: {
+        anthropic: s.model || PROVIDERS.anthropic.defModel,
+        gemini: PROVIDERS.gemini.defModel,
+        openai: PROVIDERS.openai.defModel,
+        compatible: ""
+      },
+      baseUrl: "http://localhost:11434/v1",
+      maxTokens: s.maxTokens || 8192,
+      ghToken: s.ghToken || "", ghRepo: s.ghRepo || "", ghBranch: s.ghBranch || "main",
+      freshPrompts: !!s.freshPrompts
+    };
+  }
+  if (!PROVIDERS[s.provider]) s.provider = "anthropic";
+  return s;
 }
 function saveSettings(s) { localStorage.setItem("prdw.settings", JSON.stringify(s)); }
+const activeKey = (s) => (s.keys || {})[s.provider] || "";
+const activeModel = (s) => (s.models || {})[s.provider] || PROVIDERS[s.provider].defModel;
+const llmBase = (s) => (s.provider === "openai" ? OPENAI_BASE : String(s.baseUrl || "").replace(/\/+$/, ""));
 
 /* ---------------- helpers ---------------- */
 const $ = (sel, el) => (el || document).querySelector(sel);
@@ -494,29 +557,78 @@ function mdToHtml(md) {
   return out.join("\n");
 }
 
-/* ---------------- Anthropic API ---------------- */
-function anthHeaders() {
-  const s = getSettings();
+/* ---------------- LLM providers ---------------- */
+function anthHeaders(key) {
   return {
-    "x-api-key": s.apiKey || "",
+    "x-api-key": key,
     "anthropic-version": "2023-06-01",
     "anthropic-dangerous-direct-browser-access": "true",
     "content-type": "application/json"
   };
 }
 
-async function listModels() {
-  const r = await fetch("https://api.anthropic.com/v1/models?limit=100", { headers: anthHeaders() });
-  if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
-  const j = await r.json();
-  return (j.data || []).map(m => m.id);
+function buildLLMRequest(s, system, messages, maxTok) {
+  const model = activeModel(s), key = activeKey(s);
+  if (s.provider === "anthropic") {
+    return {
+      url: "https://api.anthropic.com/v1/messages",
+      headers: anthHeaders(key),
+      body: { model, max_tokens: maxTok, stream: true, system, messages }
+    };
+  }
+  if (s.provider === "gemini") {
+    return {
+      url: `${GEMINI_BASE}/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+      headers: { "x-goog-api-key": key, "content-type": "application/json" },
+      body: {
+        systemInstruction: { parts: [{ text: system }] },
+        contents: messages.map(m => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] })),
+        generationConfig: { maxOutputTokens: maxTok }
+      }
+    };
+  }
+  const headers = { "content-type": "application/json" };
+  if (key) headers["Authorization"] = "Bearer " + key;
+  const body = {
+    model, stream: true, stream_options: { include_usage: true },
+    messages: [{ role: "system", content: system }, ...messages]
+  };
+  body[s.provider === "openai" ? "max_completion_tokens" : "max_tokens"] = maxTok;
+  return { url: llmBase(s) + "/chat/completions", headers, body };
 }
 
-async function readSseStream(resp, onDelta) {
+async function listModels() {
+  const s = getSettings(), key = activeKey(s);
+  if (s.provider === "anthropic") {
+    const r = await fetch("https://api.anthropic.com/v1/models?limit=100", { headers: anthHeaders(key) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    return ((await r.json()).data || []).map(m => m.id);
+  }
+  if (s.provider === "gemini") {
+    const r = await fetch(`${GEMINI_BASE}/models?pageSize=200`, { headers: { "x-goog-api-key": key } });
+    if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    return ((await r.json()).models || [])
+      .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map(m => String(m.name).replace(/^models\//, ""));
+  }
+  const h = key ? { "Authorization": "Bearer " + key } : {};
+  const r = await fetch(llmBase(s) + "/models", { headers: h });
+  if (!r.ok) throw new Error(`HTTP ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  return ((await r.json()).data || []).map(m => m.id);
+}
+
+/* Normalizes the three stream dialects to {text, stopReason: "max_tokens" | other | null}. */
+async function readSseStream(resp, onDelta, provider) {
   const reader = resp.body.getReader();
   const dec = new TextDecoder();
-  let buf = "", text = "", stopReason = null;
+  let buf = "", text = "", stopReason = null, callIn = 0, callOut = 0, ended = false;
+  const push = (delta) => {
+    if (!delta) return;
+    text += delta;
+    if (onDelta) onDelta(delta, text);
+  };
   for (;;) {
+    if (ended) break;
     const { done, value } = await reader.read();
     if (done) break;
     buf += dec.decode(value, { stream: true });
@@ -524,47 +636,68 @@ async function readSseStream(resp, onDelta) {
     buf = parts.pop();
     for (const ln of parts) {
       if (!ln.startsWith("data:")) continue;
+      const payload = ln.slice(5).trim();
+      if (payload === "[DONE]") { ended = true; break; }
       let ev;
-      try { ev = JSON.parse(ln.slice(5)); } catch { continue; }
-      if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") {
-        text += ev.delta.text;
-        if (onDelta) onDelta(ev.delta.text, text);
-      } else if (ev.type === "message_start" && ev.message && ev.message.usage) {
-        state.usage.input += ev.message.usage.input_tokens || 0;
-      } else if (ev.type === "message_delta") {
-        if (ev.usage) state.usage.lastOut = ev.usage.output_tokens || 0;
-        if (ev.delta && ev.delta.stop_reason) stopReason = ev.delta.stop_reason;
-      } else if (ev.type === "error") {
-        const etype = (ev.error || {}).type || "";
-        const err = new Error((ev.error || {}).message || "stream error");
-        if (etype === "overloaded_error" || etype === "api_error") err.retryable = true;
-        throw err;
+      try { ev = JSON.parse(payload); } catch { continue; }
+
+      if (provider === "anthropic") {
+        if (ev.type === "content_block_delta" && ev.delta && ev.delta.type === "text_delta") push(ev.delta.text);
+        else if (ev.type === "message_start" && ev.message && ev.message.usage) callIn = ev.message.usage.input_tokens || 0;
+        else if (ev.type === "message_delta") {
+          if (ev.usage) callOut = ev.usage.output_tokens || 0;
+          if (ev.delta && ev.delta.stop_reason) stopReason = ev.delta.stop_reason;
+        } else if (ev.type === "error") {
+          const etype = (ev.error || {}).type || "";
+          const err = new Error((ev.error || {}).message || "stream error");
+          if (etype === "overloaded_error" || etype === "api_error") err.retryable = true;
+          throw err;
+        }
+      } else if (provider === "gemini") {
+        if (ev.error) throw new Error(ev.error.message || "stream error");
+        const cand = (ev.candidates || [])[0];
+        if (cand) {
+          for (const p of ((cand.content || {}).parts || [])) push(p.text || "");
+          if (cand.finishReason && cand.finishReason !== "STOP") {
+            stopReason = cand.finishReason === "MAX_TOKENS" ? "max_tokens" : cand.finishReason;
+          }
+        }
+        if (ev.usageMetadata) {
+          callIn = ev.usageMetadata.promptTokenCount || 0;
+          callOut = (ev.usageMetadata.candidatesTokenCount || 0) + (ev.usageMetadata.thoughtsTokenCount || 0);
+        }
+      } else {
+        if (ev.error) throw new Error(ev.error.message || "stream error");
+        const ch = (ev.choices || [])[0];
+        if (ch) {
+          push((ch.delta || {}).content || "");
+          if (ch.finish_reason) stopReason = ch.finish_reason === "length" ? "max_tokens" : ch.finish_reason;
+        }
+        if (ev.usage) {
+          callIn = ev.usage.prompt_tokens || 0;
+          callOut = ev.usage.completion_tokens || 0;
+        }
       }
     }
   }
-  state.usage.output += state.usage.lastOut || 0;
-  state.usage.lastOut = 0;
+  state.usage.input += callIn;
+  state.usage.output += callOut;
   renderUsage();
   return { text, stopReason };
 }
 
 async function callClaude({ system, messages, onDelta }) {
   const s = getSettings();
-  if (!s.apiKey) throw new Error(t("needKey"));
-  const body = {
-    model: s.model || FALLBACK_MODELS[0],
-    max_tokens: Math.min(Math.max(parseInt(s.maxTokens, 10) || 8192, 1024), 64000),
-    stream: true, system, messages
-  };
+  if (!activeKey(s) && s.provider !== "compatible") throw new Error(t("needKey"));
+  const maxTok = Math.min(Math.max(parseInt(s.maxTokens, 10) || 8192, 1024), 64000);
+  const req = buildLLMRequest(s, system, messages, maxTok);
   const RETRYABLE = [408, 409, 429, 529];
   let lastErr = null;
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt) await new Promise(r => setTimeout(r, (lastErr && lastErr.waitMs) || attempt * 3000));
     let resp;
     try {
-      resp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST", headers: anthHeaders(), body: JSON.stringify(body)
-      });
+      resp = await fetch(req.url, { method: "POST", headers: req.headers, body: JSON.stringify(req.body) });
     } catch (e) { lastErr = e; continue; }
     if (RETRYABLE.includes(resp.status) || resp.status >= 500) {
       lastErr = new Error(`HTTP ${resp.status}`);
@@ -574,12 +707,15 @@ async function callClaude({ system, messages, onDelta }) {
     }
     if (!resp.ok) {
       let msg = `HTTP ${resp.status}`;
-      try { msg += ": " + ((await resp.json()).error || {}).message; } catch {}
-      if (resp.status === 400 && /max_tokens/i.test(msg)) msg += " — " + t("lowerMaxTok");
+      try {
+        const j = await resp.json();
+        msg += ": " + (((j.error || {}).message) || (Array.isArray(j) && j[0] && j[0].error && j[0].error.message) || "");
+      } catch {}
+      if (resp.status === 400 && /max_tokens|maxOutputTokens|max_completion_tokens/i.test(msg)) msg += " — " + t("lowerMaxTok");
       throw new Error(msg);
     }
     try {
-      const { text, stopReason } = await readSseStream(resp, onDelta);
+      const { text, stopReason } = await readSseStream(resp, onDelta, s.provider);
       if (stopReason === "max_tokens") throw Object.assign(new Error(t("truncated")), { fatal: true });
       return text;
     } catch (e) {
@@ -798,7 +934,8 @@ function step0() {
   $("#startBtn", body).onclick = async () => {
     const raw = $("#rawInput", body).value.trim();
     const st = $("#s0Status", body);
-    if (!getSettings().apiKey) { st.textContent = t("needKey"); st.className = "status err"; $("#settingsDlg").showModal(); return; }
+    const cfg = getSettings();
+    if (!activeKey(cfg) && cfg.provider !== "compatible") { st.textContent = t("needKey"); st.className = "status err"; $("#settingsDlg").showModal(); return; }
     if (!raw) { st.textContent = t("needRaw"); st.className = "status err"; return; }
     state.raw = raw;
     state.diagrams = [...body.querySelectorAll("#diagChecks input:checked")].map(c => c.value);
@@ -1141,26 +1278,56 @@ function failCard(card, err, retryFn) {
 /* ---------------- settings dialog ---------------- */
 function bindSettings() {
   const dlg = $("#settingsDlg");
-  const s = getSettings();
-  $("#setKey").value = s.apiKey || "";
-  $("#setModel").value = s.model || FALLBACK_MODELS[0];
-  $("#setMaxTok").value = s.maxTokens || 8192;
-  $("#setGhToken").value = s.ghToken || "";
-  $("#setGhRepo").value = s.ghRepo || "";
-  $("#setGhBranch").value = s.ghBranch || "main";
-  $("#setFreshPrompts").checked = !!s.freshPrompts;
-  $("#modelList").innerHTML = FALLBACK_MODELS.map(m => `<option value="${m}">`).join("");
+  let draft = getSettings();
+  const provSel = $("#setProvider");
+  provSel.innerHTML = Object.entries(PROVIDERS)
+    .map(([k, p]) => `<option value="${k}">${esc(p.name)}</option>`).join("");
 
-  $("#settingsBtn").onclick = () => dlg.showModal();
-  const persist = () => saveSettings({
-    apiKey: $("#setKey").value.trim(),
-    model: $("#setModel").value.trim() || FALLBACK_MODELS[0],
-    maxTokens: parseInt($("#setMaxTok").value, 10) || 8192,
-    ghToken: $("#setGhToken").value.trim(),
-    ghRepo: $("#setGhRepo").value.trim(),
-    ghBranch: $("#setGhBranch").value.trim() || "main",
-    freshPrompts: $("#setFreshPrompts").checked
-  });
+  const loadProviderFields = () => {
+    const p = PROVIDERS[draft.provider];
+    provSel.value = draft.provider;
+    $("#provHint").textContent = t("provHint_" + draft.provider);
+    $("#setKey").value = draft.keys[draft.provider] || "";
+    $("#setKey").placeholder = p.keyPh;
+    $("#setModel").value = draft.models[draft.provider] || p.defModel;
+    $("#setModel").placeholder = p.defModel || "model-id";
+    $("#modelList").innerHTML = p.models.map(m => `<option value="${esc(m)}">`).join("");
+    $("#baseUrlRow").style.display = draft.provider === "compatible" ? "" : "none";
+    $("#setBaseUrl").value = draft.baseUrl || "";
+    $("#modelStatus").textContent = "";
+  };
+  const loadSharedFields = () => {
+    $("#setMaxTok").value = draft.maxTokens || 8192;
+    $("#setGhToken").value = draft.ghToken || "";
+    $("#setGhRepo").value = draft.ghRepo || "";
+    $("#setGhBranch").value = draft.ghBranch || "main";
+    $("#setFreshPrompts").checked = !!draft.freshPrompts;
+  };
+  const stashFields = () => {
+    draft.keys[draft.provider] = $("#setKey").value.trim();
+    draft.models[draft.provider] = $("#setModel").value.trim() || PROVIDERS[draft.provider].defModel;
+    draft.baseUrl = $("#setBaseUrl").value.trim() || draft.baseUrl;
+    draft.maxTokens = parseInt($("#setMaxTok").value, 10) || 8192;
+    draft.ghToken = $("#setGhToken").value.trim();
+    draft.ghRepo = $("#setGhRepo").value.trim();
+    draft.ghBranch = $("#setGhBranch").value.trim() || "main";
+    draft.freshPrompts = $("#setFreshPrompts").checked;
+  };
+  loadProviderFields();
+  loadSharedFields();
+
+  provSel.onchange = () => {
+    stashFields();
+    draft.provider = provSel.value;
+    loadProviderFields();
+  };
+  $("#settingsBtn").onclick = () => {
+    draft = getSettings();
+    loadProviderFields();
+    loadSharedFields();
+    dlg.showModal();
+  };
+  const persist = () => { stashFields(); saveSettings(draft); };
   $("#settingsClose").onclick = () => { persist(); dlg.close(); };
   dlg.addEventListener("close", persist);
 
@@ -1216,7 +1383,7 @@ async function boot() {
 }
 
 /* test hooks for automated checks */
-window.PRD = { mdToHtml, extractJSON, validateAgainstSchema, stripReviewerNotes, insertReviewerNotes, featureFileName, utf8b64, get prompts() { return PROMPTS; }, state };
+window.PRD = { mdToHtml, extractJSON, validateAgainstSchema, stripReviewerNotes, insertReviewerNotes, featureFileName, utf8b64, buildLLMRequest, getSettings, get prompts() { return PROMPTS; }, state };
 
 boot();
 </script>

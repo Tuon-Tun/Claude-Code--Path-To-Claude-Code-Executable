@@ -9,11 +9,20 @@ This document explains how to use the PRD Writer workflow and how the end-to-end
 If you are not comfortable with IDEs or the command line, use the bundled web app. It runs the exact same pipeline, entirely in your browser.
 
 1. Download [`webapp/index.html`](./webapp/index.html) (or clone the repo) and **open it in any modern browser** — no install, no server.
-2. Click **⚙️ Settings** and paste your **Anthropic API key** (create one at console.anthropic.com). Pick a model — click *Load my models* to list the ones your account can use.
+2. Click **⚙️ Settings**, choose an **AI provider**, and paste its API key. Click *Load my models* to list the models your account can use.
+
+   | Provider | Cost | Where to get a key |
+   |----------|------|--------------------|
+   | **Google Gemini** | **Free tier** — `gemini-2.5-flash`, ~1,500 requests/day, no card needed | aistudio.google.com/apikey |
+   | Anthropic Claude | Pay-as-you-go API (best PRD quality) | console.anthropic.com |
+   | OpenAI | Pay-as-you-go API | platform.openai.com |
+   | OpenAI-compatible | Groq (free tier), OpenRouter, or **local Ollama** (`http://localhost:11434/v1` — free, fully private, no key) | provider-specific |
+
+   Note: consumer subscriptions (Claude Pro/Max, ChatGPT Plus) cannot be used here — providers restrict them to their own apps. If you have a Claude subscription, run this pipeline inside claude.ai or Claude Code instead (see the modes table below); the web app is the path for API keys.
 3. Optionally add a **GitHub token + repository** to save finished PRDs straight into `domain-knowledge/<domain>/PRDs/` of that repo. The token needs the *Contents: read & write* permission.
 4. Describe your feature, tick the sections and diagrams you want, and walk through the approval gates. Export as Markdown, Word (.doc), or straight to GitHub at the end.
 
-Privacy: the API key is stored only in your browser's localStorage, and every call goes directly from your browser to `api.anthropic.com` / `api.github.com` — there is no middleman server. The UI supports English and Vietnamese.
+Privacy: API keys are stored only in your browser's localStorage, and every call goes directly from your browser to the selected provider's API / `api.github.com` — there is no middleman server. The UI supports English and Vietnamese.
 
 For maintainers: `webapp/index.html` is generated — after changing anything under `knowledge-base/`, run `python webapp/build.py` and commit the result. `smoke_test.py` fails if the embedded prompts drift from the sources.
 
@@ -78,7 +87,7 @@ There are three ways to run the same pipeline:
 
 | How | For whom | Output |
 |-----|----------|--------|
-| **Web app** (`webapp/index.html`) | Anyone with a browser and an Anthropic API key — no IDE, no install | Markdown / Word download, print-to-PDF, or save straight to a GitHub repo |
+| **Web app** (`webapp/index.html`) | Anyone with a browser and an API key from Gemini (free tier), Anthropic, OpenAI, or any OpenAI-compatible endpoint — no IDE, no install | Markdown / Word download, print-to-PDF, or save straight to a GitHub repo |
 | `IDE_FULL_PIPELINE` | Users of Claude Code or another agent IDE working inside this repo | Files under `domain-knowledge/`, optional DOCX export |
 | `CHAT_TEXT_ONLY` | Chat-agent sessions where no files should be created | Structured text returned in chat |
 
